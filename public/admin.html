@@ -141,42 +141,6 @@
       </div>
     </section>
 
-    <section id="secao-equipes" class="card oculto">
-      <h2 style="margin-top:0;">👥 Equipes com acesso ao painel</h2>
-      <p style="color:var(--texto-fraco); font-size:0.85rem;">
-        Equipes conseguem gerenciar pedidos (pegar, liberar, marcar como entregue), mas não podem criar outras equipes nem usar o botão do pânico.
-      </p>
-
-      <div class="tabela-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Usuário</th>
-              <th>Papel</th>
-              <th>Ação</th>
-            </tr>
-          </thead>
-          <tbody id="corpo-equipes"></tbody>
-        </table>
-      </div>
-
-      <h3>Criar nova equipe</h3>
-      <form id="form-nova-equipe" onsubmit="criarEquipe(event)" style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
-        <label style="margin:0;">Nome da equipe
-          <input id="nova-equipe-nome" type="text" placeholder="Ex: Equipe Azul" required>
-        </label>
-        <label style="margin:0;">Usuário (login)
-          <input id="nova-equipe-usuario" type="text" placeholder="Ex: equipeazul" required>
-        </label>
-        <label style="margin:0;">Senha
-          <input id="nova-equipe-senha" type="text" placeholder="Senha da equipe" required>
-        </label>
-        <button class="destaque" type="submit">Criar equipe</button>
-      </form>
-      <div id="equipe-erro" class="aviso erro oculto" style="margin-top:8px;"></div>
-    </section>
-
   </div>
 
 </main>

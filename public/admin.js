@@ -96,7 +96,6 @@ async function mostrarPainel() {
     `Logado como <strong>${sessao.nome}</strong> (${ehAdmin ? 'admin' : 'equipe'}) ` +
     `<a href="#" onclick="event.preventDefault(); sair();" style="margin-left:8px; font-size:0.8rem;">sair</a>`;
   document.getElementById('botao-panico').classList.toggle('oculto', !ehAdmin);
-  document.getElementById('secao-equipes').classList.toggle('oculto', !ehAdmin);
   document.getElementById('secao-estoque').classList.toggle('oculto', !ehAdmin);
 
   await carregarCategorias();
@@ -105,7 +104,6 @@ async function mostrarPainel() {
 
   if (ehAdmin) {
     await carregarStatusPanico();
-    await carregarEquipes();
     await carregarEstoque();
     setInterval(carregarStatusPanico, 5000);
   }
@@ -178,61 +176,6 @@ async function salvarEstoque(produtoId) {
   const dados = await res.json();
   if (!res.ok) { alert(dados.erro || 'Erro ao salvar estoque.'); return; }
   input.value = dados.estoque;
-}
-
-// ---------- Equipes (somente admin) ----------
-async function carregarEquipes() {
-  const res = await apiAdmin('/usuarios');
-  const lista = await res.json();
-  const corpo = document.getElementById('corpo-equipes');
-  corpo.innerHTML = '';
-
-  lista.forEach(u => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${u.nome}</td>
-      <td>${u.usuario}</td>
-      <td>${u.papel === 'admin' ? 'Admin' : 'Equipe'}</td>
-      <td>${u.papel === 'admin' ? '' : `<button class="secundario" onclick="excluirEquipe(${u.id})">Excluir</button>`}</td>
-    `;
-    corpo.appendChild(tr);
-  });
-}
-
-async function criarEquipe(ev) {
-  ev.preventDefault();
-  const nome = document.getElementById('nova-equipe-nome').value.trim();
-  const usuario = document.getElementById('nova-equipe-usuario').value.trim();
-  const senha = document.getElementById('nova-equipe-senha').value;
-  const erroEl = document.getElementById('equipe-erro');
-  erroEl.classList.add('oculto');
-
-  const res = await apiAdmin('/usuarios', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nome, usuario, senha })
-  });
-  const dados = await res.json();
-
-  if (!res.ok) {
-    erroEl.textContent = dados.erro || 'Erro ao criar equipe.';
-    erroEl.classList.remove('oculto');
-    return;
-  }
-
-  document.getElementById('form-nova-equipe').reset();
-  carregarEquipes();
-}
-
-async function excluirEquipe(id) {
-  if (!confirm('Remover esta equipe? Ela não vai mais conseguir entrar no painel.')) return;
-  const res = await apiAdmin(`/usuarios/${id}`, { method: 'DELETE' });
-  if (!res.ok) {
-    const dados = await res.json();
-    alert(dados.erro || 'Erro ao remover.');
-    return;
-  }
-  carregarEquipes();
 }
 
 // ---------- API ----------
