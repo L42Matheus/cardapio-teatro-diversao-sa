@@ -4,6 +4,9 @@
   "description": "Prototipo: marketplace de evento com pagamento Pix (Banco Inter) e controle de pedidos/entregadores",
   "main": "server.js",
   "type": "commonjs",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "start": "node server.js"
   },
