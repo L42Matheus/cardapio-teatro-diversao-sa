@@ -62,7 +62,9 @@ body {
   align-items: center;
   gap: 16px;
   position: relative;
+  flex-wrap: wrap;
 }
+.eac-topo nav { margin-left: auto; }
 .eac-logo {
   width: 56px; height: 56px;
   flex-shrink: 0;
@@ -524,9 +526,30 @@ select.small { width: auto; display: inline-block; padding: 6px 8px; }
 .eac-rodape span { color: var(--amarelo-esc); }
 
 /* Mobile ajustes */
+/* Header responsivo: em telas menores o titulo diminui e o nav
+   (Ver loja / botao do panico) desce pra proxima linha, ocupando
+   largura total pra nao brigar com o titulo longo. */
+@media (max-width: 820px) {
+  .eac-titulo h1 { font-size: 1.15rem; letter-spacing: 0.5px; }
+  .eac-header nav {
+    order: 10;
+    width: 100%;
+    text-align: right;
+    margin-top: 6px;
+  }
+  .eac-header nav a { margin-left: 0; }
+  #botao-panico {
+    order: 9;
+    width: 100%;
+    margin-top: 8px;
+  }
+}
+
 @media (max-width: 520px) {
-  .eac-titulo h1 { font-size: 1.1rem; }
-  .eac-titulo p  { font-size: 0.75rem; }
+  .eac-logo { width: 44px; height: 44px; }
+  .eac-titulo h1 { font-size: 1rem; letter-spacing: 0; }
+  .eac-titulo p  { font-size: 0.72rem; }
+  .eac-header { padding: 16px 16px 14px; }
   h2 { font-size: 1rem; }
   .produto-card h3 { min-height: auto; }
 }
