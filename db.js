@@ -111,18 +111,17 @@ function aplicarMigracoes(dados) {
     dados.proximoUsuarioId = dados.proximoUsuarioId || 2;
     alterou = true;
   } else {
-    // Renomeia o antigo admin "neymar" -> "teatro".
-    const antigoAdmin = dados.usuarios.find(u => u.usuario === 'neymar' && u.papel === 'admin');
-    if (antigoAdmin) {
-      antigoAdmin.usuario = 'teatro';
-      alterou = true;
-    }
     // Garante que existe um admin.
     let admin = dados.usuarios.find(u => u.papel === 'admin');
     if (!admin) {
       admin = { id: dados.proximoUsuarioId || 1, usuario: 'teatro', senhaHash: hashDesejado, papel: 'admin', nome: 'Admin' };
       dados.usuarios.push(admin);
       dados.proximoUsuarioId = (dados.proximoUsuarioId || 1) + 1;
+      alterou = true;
+    }
+    // Trava o usuario do admin em "teatro" (nao pode ser mudado pelo painel).
+    if (admin.usuario !== 'teatro') {
+      admin.usuario = 'teatro';
       alterou = true;
     }
     // Sincroniza a senha do admin com ADMIN_PASSWORD (ou 'neymar' se nao setada).
