@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <radialGradient id="petala" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff6b81"/>
+      <stop offset="100%" stop-color="#c0392b"/>
+    </radialGradient>
+  </defs>
+  <rect width="200" height="200" fill="#fff8e7"/>
+  <path d="M100 160 C 95 130, 90 110, 82 90" stroke="#2e7d32" stroke-width="4" fill="none"/>
+  <path d="M82 110 q -20 -5 -25 -22 q 15 -3 30 12 z" fill="#2e7d32"/>
+  <circle cx="100" cy="80" r="34" fill="url(#petala)"/>
+  <path d="M100 55 q 18 8 20 27 q -5 -12 -20 -14 q -15 2 -20 14 q 2 -19 20 -27z" fill="#e74c3c"/>
+  <circle cx="100" cy="82" r="10" fill="#7d0e0e"/>
+</svg>

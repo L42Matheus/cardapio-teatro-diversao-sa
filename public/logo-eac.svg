@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- Raios coloridos -->
+  <g stroke-linecap="round" stroke-width="6">
+    <line x1="60" y1="8"  x2="60" y2="22" stroke="#f5b301"/>
+    <line x1="30" y1="14" x2="36" y2="26" stroke="#e53935"/>
+    <line x1="90" y1="14" x2="84" y2="26" stroke="#1e5aa8"/>
+    <line x1="12" y1="30" x2="24" y2="36" stroke="#2e7d32"/>
+    <line x1="108" y1="30" x2="96" y2="36" stroke="#ffffff"/>
+    <line x1="8"  y1="55" x2="22" y2="55" stroke="#e53935"/>
+    <line x1="112" y1="55" x2="98" y2="55" stroke="#2e7d32"/>
+  </g>
+  <!-- Cruz dourada -->
+  <g fill="#f5b301" stroke="#c98f00" stroke-width="2">
+    <rect x="52" y="30" width="16" height="60" rx="2"/>
+    <rect x="38" y="46" width="44" height="16" rx="2"/>
+  </g>
+</svg>

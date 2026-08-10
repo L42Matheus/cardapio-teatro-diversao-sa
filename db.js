@@ -12,19 +12,54 @@ const DB_PATH = path.join(__dirname, 'data', 'db.json');
 
 const LIMITE_TOTAL_PEDIDOS = 100; // <-- ajuste aqui o X (limite geral de compras do evento)
 
+// Categorias oferecidas na loja do EAC. A ordem aqui define a ordem das abas
+// que aparecem na tela de vendas.
+const CATEGORIAS = [
+  { id: 'rosa',      nome: 'Rosas',      emoji: '🌹' },
+  { id: 'chocolate', nome: 'Chocolates', emoji: '🍫' },
+  { id: 'boton',     nome: 'Botons',     emoji: '📛' },
+  { id: 'trote',     nome: 'Trotes',     emoji: '💌' }
+];
+
 function estadoInicial() {
   return {
     config: {
       limiteTotal: LIMITE_TOTAL_PEDIDOS
     },
     produtos: [
-      { id: 1, nome: 'Produto 1', preco: 15.0, foto: '/uploads/produtos/produto1.svg', ativo: true },
-      { id: 2, nome: 'Produto 2', preco: 20.0, foto: '/uploads/produtos/produto2.svg', ativo: true },
-      { id: 3, nome: 'Produto 3', preco: 10.0, foto: '/uploads/produtos/produto3.svg', ativo: true }
+      // ----- Rosas -----
+      { id: 1,  categoria: 'rosa',      nome: 'Rosa Única',           preco: 5.00, foto: '/uploads/produtos/rosa.svg',
+        descricao: 'Uma rosa vermelha entregue com carinho para quem você escolher.', ativo: true },
+      { id: 2,  categoria: 'rosa',      nome: 'Buquê de 3 Rosas',     preco: 7.00, foto: '/uploads/produtos/buque.svg',
+        descricao: 'Buquê com três rosas para uma surpresa especial.', ativo: true },
+
+      // ----- Chocolates -----
+      { id: 3,  categoria: 'chocolate', nome: 'Chocolate com Rosa',   preco: 7.00, foto: '/uploads/produtos/chocolate.svg',
+        descricao: 'Uma barra de chocolate acompanhada de uma rosa.', ativo: true },
+      { id: 4,  categoria: 'chocolate', nome: 'Chocolate Coração',    preco: 5.00, foto: '/uploads/produtos/chocolate-coracao.svg',
+        descricao: 'Chocolate em formato de coração para adoçar o encontro.', ativo: true },
+
+      // ----- Botons -----
+      { id: 5,  categoria: 'boton',     nome: 'Boton EAC',            preco: 3.00, foto: '/uploads/produtos/boton.svg',
+        descricao: 'Boton oficial do EAC Santo Antônio.', ativo: true },
+      { id: 6,  categoria: 'boton',     nome: 'Kit 3 Botons',         preco: 7.00, foto: '/uploads/produtos/boton-kit.svg',
+        descricao: 'Trio de botons coloridos do EAC.', ativo: true },
+
+      // ----- Trotes (nomes fictícios, ajustar depois com a equipe) -----
+      { id: 7,  categoria: 'trote',     nome: 'Trote do Anjo da Guarda', preco: 4.00, foto: '/uploads/produtos/trote-anjo.svg',
+        descricao: 'Um "anjinho" surpresa entrega uma mensagem carinhosa.', ativo: true },
+      { id: 8,  categoria: 'trote',     nome: 'Serenata do Coração',     preco: 5.00, foto: '/uploads/produtos/trote-serenata.svg',
+        descricao: 'A pessoa recebe uma canção ao vivo dos servos.', ativo: true },
+      { id: 9,  categoria: 'trote',     nome: 'Missão Fraterna',         preco: 3.00, foto: '/uploads/produtos/trote-missao.svg',
+        descricao: 'Um bilhete anônimo com uma oração é entregue à pessoa.', ativo: true },
+      { id: 10, categoria: 'trote',     nome: 'Abraço em Cristo',        preco: 4.00, foto: '/uploads/produtos/trote-abraco.svg',
+        descricao: 'Um grupo de servos vai até a pessoa entregar um abraço coletivo.', ativo: true },
+      { id: 11, categoria: 'trote',     nome: 'Dança da Alegria',        preco: 6.00, foto: '/uploads/produtos/trote-danca.svg',
+        descricao: 'Mini apresentação de dança feita para alegrar o encontrista.', ativo: true }
     ],
     entregadores: [
-      { id: 1, nome: 'Entregador 1' },
-      { id: 2, nome: 'Entregador 2' }
+      { id: 1, nome: 'Equipe Trote 1' },
+      { id: 2, nome: 'Equipe Trote 2' }
     ],
     pedidos: [],
     proximoPedidoId: 1
@@ -75,6 +110,23 @@ function estoqueDisponivel() {
 
 // ---- Pedidos ----
 
+// Gera um código público curto, tipo "EAC-XK7B", para o comprador consultar
+// o pedido. Evita usar o id sequencial (1, 2, 3...) que qualquer um adivinha.
+// Sem caracteres ambíguos (0/O, 1/I) para ficar fácil de ditar por voz.
+function gerarCodigoPedido(dados) {
+  const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const existentes = new Set(dados.pedidos.map(p => p.codigo).filter(Boolean));
+  for (let tentativa = 0; tentativa < 20; tentativa++) {
+    let codigo = 'EAC-';
+    for (let i = 0; i < 4; i++) {
+      codigo += ALFABETO[Math.floor(Math.random() * ALFABETO.length)];
+    }
+    if (!existentes.has(codigo)) return codigo;
+  }
+  // Fallback praticamente impossível: adiciona sufixo com timestamp.
+  return `EAC-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+}
+
 function criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario }) {
   const dados = carregar();
 
@@ -89,10 +141,13 @@ function criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario }) {
   }
 
   const id = dados.proximoPedidoId++;
+  const codigo = gerarCodigoPedido(dados);
   const pedido = {
     id,
+    codigo,
     produtoId: produto.id,
     produtoNome: produto.nome,
+    categoria: produto.categoria || null,
     valor: produto.preco,
     nomeComprador,
     contato,
@@ -117,6 +172,13 @@ function buscarPedido(id) {
 function buscarPedidoPorTxid(txid) {
   const dados = carregar();
   return dados.pedidos.find(p => p.pixTxid === txid);
+}
+
+function buscarPedidoPorCodigo(codigo) {
+  if (!codigo) return null;
+  const alvo = String(codigo).trim().toUpperCase();
+  const dados = carregar();
+  return dados.pedidos.find(p => (p.codigo || '').toUpperCase() === alvo);
 }
 
 function listarPedidos() {
@@ -169,6 +231,10 @@ function listarEntregadores() {
   return dados.entregadores;
 }
 
+function listarCategorias() {
+  return CATEGORIAS;
+}
+
 module.exports = {
   listarProdutosAtivos,
   buscarProduto,
@@ -176,9 +242,11 @@ module.exports = {
   criarPedido,
   buscarPedido,
   buscarPedidoPorTxid,
+  buscarPedidoPorCodigo,
   listarPedidos,
   atualizarStatusPorTxid,
   atribuirEntregador,
   marcarEntregue,
-  listarEntregadores
+  listarEntregadores,
+  listarCategorias
 };

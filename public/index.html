@@ -3,56 +3,81 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mercado do Evento</title>
+<title>EAC Santo Antônio — Trotes e Rosas</title>
+<link rel="icon" type="image/svg+xml" href="/logo-eac.svg">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <h1>Mercado do Evento</h1>
-  <p id="estoque-info">Carregando vagas disponiveis...</p>
+
+<header class="eac-header">
+  <div class="eac-topo">
+    <img class="eac-logo" src="/logo-eac.svg" alt="Logo EAC">
+    <div class="eac-titulo" style="flex:1">
+      <h1>EAC — Paróquia de Santo Antônio</h1>
+      <p>Trotes, rosas, chocolates e botons — evangelizando com carinho</p>
+    </div>
+  </div>
+  <p class="eac-estoque" id="estoque-info">Carregando vagas disponíveis...</p>
 </header>
+<div class="eac-faixa"></div>
 
 <main>
-  <section id="secao-produtos">
-    <h2>Produtos disponiveis</h2>
+
+  <section>
+    <h2>Escolha o que enviar</h2>
+    <div class="abas" id="abas-categorias"></div>
     <div class="produtos" id="lista-produtos"></div>
   </section>
 
   <section id="secao-formulario" class="card oculto">
-    <h2>Comprar <span id="form-produto-nome"></span></h2>
+    <h2>Enviar <span id="form-produto-nome"></span></h2>
     <label>Seu nome
-      <input id="nomeComprador" type="text" placeholder="Seu nome">
+      <input id="nomeComprador" type="text" placeholder="Como você quer se identificar">
     </label>
-    <label>Seu contato (whatsapp)
+    <label>Seu contato (WhatsApp)
       <input id="contato" type="text" placeholder="(83) 90000-0000">
     </label>
     <label>Nome de quem vai receber
-      <input id="nomeDestinatario" type="text" placeholder="Nome do destinatario">
+      <input id="nomeDestinatario" type="text" placeholder="Nome de quem receberá a surpresa">
     </label>
     <div id="form-erro" class="aviso erro oculto"></div>
-    <button onclick="enviarPedido()">Gerar cobranca Pix</button>
-    <button class="secundario" onclick="cancelarFormulario()">Cancelar</button>
+    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="destaque" onclick="enviarPedido()">Gerar cobrança Pix</button>
+      <button class="secundario" onclick="cancelarFormulario()">Cancelar</button>
+    </div>
   </section>
 
   <section id="secao-pix" class="card oculto">
     <h2>Pagamento Pix</h2>
-    <p>Ticket do pedido: <strong id="pix-ticket"></strong></p>
+    <div class="ticket-box">
+      <div style="font-size:0.75rem; color:var(--texto-fraco); text-transform:uppercase;">Seu código</div>
+      <div class="numero" id="pix-ticket"></div>
+      <div style="font-size:0.75rem; color:var(--texto-fraco); margin-top:6px;">Guarde este código para consultar seu pedido</div>
+    </div>
     <p>Valor: <strong id="pix-valor"></strong></p>
     <p>Copia e cola (simulado):</p>
-    <textarea readonly rows="3" style="width:100%" id="pix-copiacola"></textarea>
-    <p id="pix-status">Status: <span class="status-pendente_pagamento">aguardando pagamento...</span></p>
-    <button onclick="simularPagamento()">Simular pagamento (apenas demo)</button>
+    <textarea readonly rows="3" id="pix-copiacola"></textarea>
+    <p id="pix-status" style="margin-top:12px;">Status: <span class="status-pendente_pagamento">aguardando pagamento...</span></p>
+    <div class="aviso info">
+      Guarde o número do ticket para acompanhar o status da entrega mais abaixo.
+    </div>
+    <button class="secundario" onclick="simularPagamento()" style="margin-top:12px;">Simular pagamento (apenas demo)</button>
   </section>
 
   <section class="card">
-    <h2>Consultar pedido pelo ticket</h2>
-    <label>Numero do pedido
-      <input id="ticketConsulta" type="text" placeholder="Ex: 1">
+    <h2>Consultar meu pedido</h2>
+    <label>Código do pedido
+      <input id="ticketConsulta" type="text" placeholder="Ex: EAC-XK7B" style="text-transform:uppercase;">
     </label>
-    <button onclick="consultarTicket()">Consultar</button>
+    <button onclick="consultarTicket()" style="margin-top:10px;">Consultar</button>
     <div id="resultado-consulta"></div>
   </section>
+
 </main>
+
+<footer class="eac-rodape">
+  Feito com <span>&#10084;</span> pela equipe do <strong>EAC Santo Antônio</strong>
+</footer>
 
 <script src="app.js"></script>
 </body>

@@ -12,6 +12,11 @@ router.get('/produtos', (req, res) => {
   res.json(db.listarProdutosAtivos());
 });
 
+// GET /api/categorias -> categorias exibidas nas abas da loja
+router.get('/categorias', (req, res) => {
+  res.json(db.listarCategorias());
+});
+
 // GET /api/estoque -> quantas vagas ainda restam no total (limite X geral)
 router.get('/estoque', (req, res) => {
   res.json(db.estoqueDisponivel());
@@ -29,7 +34,8 @@ router.post('/pedidos', (req, res) => {
     const pedido = db.criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario });
     const cobranca = criarCobrancaPix(pedido); // chamada (mock) a API Pix do Inter
     return res.status(201).json({
-      ticket: pedido.id,
+      ticket: pedido.codigo, // código público, ex: EAC-XK7B
+      id: pedido.id,         // id interno (uso do admin), NÃO usar como consulta pública
       status: pedido.status,
       pix: cobranca
     });
@@ -45,14 +51,28 @@ router.post('/pedidos', (req, res) => {
   }
 });
 
-// GET /api/pedidos/:ticket -> consulta publica de status pelo numero do pedido
+// Aceita tanto o código público (EAC-XXXX) quanto o id numérico legado.
+// A consulta pública deve usar o código; o id fica para o admin.
+function acharPorTicket(param) {
+  if (!param) return null;
+  const bruto = String(param).trim();
+  if (bruto.toUpperCase().startsWith('EAC-')) {
+    return db.buscarPedidoPorCodigo(bruto);
+  }
+  if (/^\d+$/.test(bruto)) {
+    return db.buscarPedido(bruto);
+  }
+  return db.buscarPedidoPorCodigo(bruto);
+}
+
+// GET /api/pedidos/:ticket -> consulta publica de status pelo codigo do pedido
 router.get('/pedidos/:ticket', (req, res) => {
-  const pedido = db.buscarPedido(req.params.ticket);
+  const pedido = acharPorTicket(req.params.ticket);
   if (!pedido) return res.status(404).json({ erro: 'Pedido nao encontrado.' });
 
   // So devolve o que o comprador precisa ver (nao expoe dados internos)
   res.json({
-    ticket: pedido.id,
+    ticket: pedido.codigo || String(pedido.id),
     produto: pedido.produtoNome,
     destinatario: pedido.nomeDestinatario,
     status: pedido.status,
@@ -64,12 +84,12 @@ router.get('/pedidos/:ticket', (req, res) => {
 // Endpoint SOMENTE PARA DEMONSTRACAO — simula o webhook do Inter chegando.
 // Remover/desativar quando integrar a API real do Pix.
 router.post('/pedidos/:ticket/simular-pagamento', (req, res) => {
-  const pedido = db.buscarPedido(req.params.ticket);
+  const pedido = acharPorTicket(req.params.ticket);
   if (!pedido) return res.status(404).json({ erro: 'Pedido nao encontrado.' });
 
   try {
     const atualizado = db.atualizarStatusPorTxid(pedido.pixTxid, 'pago');
-    res.json({ ticket: atualizado.id, status: atualizado.status });
+    res.json({ ticket: atualizado.codigo || String(atualizado.id), status: atualizado.status });
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao simular pagamento.' });
   }

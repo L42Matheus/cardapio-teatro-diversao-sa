@@ -2,38 +2,109 @@ let produtoSelecionado = null;
 let ticketAtual = null;
 let intervaloConsulta = null;
 
+let categorias = [];
+let produtos = [];
+let categoriaAtiva = 'todos';
+
+// ---------- Estoque geral ----------
 async function carregarEstoque() {
   const res = await fetch('/api/estoque');
   const dados = await res.json();
   document.getElementById('estoque-info').textContent =
-    `Vagas disponiveis: ${dados.disponiveis} de ${dados.limiteTotal}`;
+    `Vagas disponíveis: ${dados.disponiveis} de ${dados.limiteTotal}`;
 }
 
+// ---------- Abas de categoria ----------
+async function carregarCategorias() {
+  const res = await fetch('/api/categorias');
+  categorias = await res.json();
+
+  const abas = document.getElementById('abas-categorias');
+  abas.innerHTML = '';
+
+  const todos = criarAba('todos', '✨ Todos');
+  abas.appendChild(todos);
+
+  categorias.forEach(cat => {
+    abas.appendChild(criarAba(cat.id, `${cat.emoji} ${cat.nome}`));
+  });
+
+  marcarAbaAtiva();
+}
+
+function criarAba(id, texto) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'aba';
+  btn.dataset.categoria = id;
+  btn.textContent = texto;
+  btn.onclick = () => {
+    categoriaAtiva = id;
+    marcarAbaAtiva();
+    renderizarProdutos();
+  };
+  return btn;
+}
+
+function marcarAbaAtiva() {
+  document.querySelectorAll('.aba').forEach(a => {
+    a.classList.toggle('ativa', a.dataset.categoria === categoriaAtiva);
+  });
+}
+
+// ---------- Produtos ----------
 async function carregarProdutos() {
   const res = await fetch('/api/produtos');
-  const produtos = await res.json();
+  produtos = await res.json();
+  renderizarProdutos();
+}
+
+function nomeCategoria(id) {
+  const c = categorias.find(x => x.id === id);
+  return c ? `${c.emoji} ${c.nome}` : id;
+}
+
+function renderizarProdutos() {
   const container = document.getElementById('lista-produtos');
   container.innerHTML = '';
-  produtos.forEach(p => {
+
+  const filtrados = categoriaAtiva === 'todos'
+    ? produtos
+    : produtos.filter(p => p.categoria === categoriaAtiva);
+
+  if (filtrados.length === 0) {
+    container.innerHTML = `<div class="aviso info">Nenhum item nesta categoria por enquanto.</div>`;
+    return;
+  }
+
+  filtrados.forEach(p => {
     const div = document.createElement('div');
     div.className = 'produto-card';
     div.innerHTML = `
-      <img src="${p.foto}" alt="${p.nome}" onerror="this.style.opacity=0.2">
+      <div class="imagem">
+        <img src="${p.foto}" alt="${p.nome}" onerror="this.style.opacity=0.2">
+      </div>
+      ${p.categoria ? `<span class="categoria-tag">${nomeCategoria(p.categoria)}</span>` : ''}
       <h3>${p.nome}</h3>
-      <div class="preco">R$ ${p.preco.toFixed(2)}</div>
-      <button onclick="abrirFormulario(${p.id}, '${p.nome}')">Comprar</button>
+      <p class="descricao">${p.descricao || ''}</p>
+      <div class="preco">R$ ${p.preco.toFixed(2).replace('.', ',')}</div>
+      <button class="destaque" onclick="abrirFormulario(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">Enviar este</button>
     `;
     container.appendChild(div);
   });
 }
 
+// ---------- Formulário ----------
 function abrirFormulario(id, nome) {
   produtoSelecionado = id;
   document.getElementById('form-produto-nome').textContent = nome;
   document.getElementById('secao-formulario').classList.remove('oculto');
   document.getElementById('secao-pix').classList.add('oculto');
   document.getElementById('form-erro').classList.add('oculto');
-  window.scrollTo({ top: document.getElementById('secao-formulario').offsetTop - 20, behavior: 'smooth' });
+  window.scrollTo({
+    top: document.getElementById('secao-formulario').offsetTop - 20,
+    behavior: 'smooth'
+  });
 }
 
 function cancelarFormulario() {
@@ -74,10 +145,16 @@ async function enviarPedido() {
   ticketAtual = dados.ticket;
   document.getElementById('secao-formulario').classList.add('oculto');
   document.getElementById('secao-pix').classList.remove('oculto');
-  document.getElementById('pix-ticket').textContent = `#${dados.ticket}`;
-  document.getElementById('pix-valor').textContent = `R$ ${dados.pix.valor.toFixed(2)}`;
+  document.getElementById('pix-ticket').textContent = dados.ticket;
+  document.getElementById('pix-valor').textContent = `R$ ${dados.pix.valor.toFixed(2).replace('.', ',')}`;
   document.getElementById('pix-copiacola').value = dados.pix.copiaECola;
-  document.getElementById('pix-status').innerHTML = 'Status: <span class="status-pendente_pagamento">aguardando pagamento...</span>';
+  document.getElementById('pix-status').innerHTML =
+    'Status: <span class="status-pendente_pagamento">aguardando pagamento...</span>';
+
+  window.scrollTo({
+    top: document.getElementById('secao-pix').offsetTop - 20,
+    behavior: 'smooth'
+  });
 
   iniciarPollingStatus(dados.ticket);
   carregarEstoque();
@@ -91,7 +168,7 @@ function iniciarPollingStatus(ticket) {
     const dados = await res.json();
     if (dados.status !== 'pendente_pagamento') {
       document.getElementById('pix-status').innerHTML =
-        `Status: <span class="status-${dados.status}">${legendaStatus(dados.status)}</span> — pagamento confirmado! Guarde seu ticket #${dados.ticket}.`;
+        `Status: <span class="status-${dados.status}">${legendaStatus(dados.status)}</span> — pagamento confirmado! Guarde seu código <strong>${dados.ticket}</strong>.`;
       clearInterval(intervaloConsulta);
     }
   }, 2000);
@@ -114,23 +191,27 @@ function legendaStatus(status) {
 }
 
 async function consultarTicket() {
-  const ticket = document.getElementById('ticketConsulta').value.trim();
+  const ticket = document.getElementById('ticketConsulta').value.trim().toUpperCase();
   const resultadoEl = document.getElementById('resultado-consulta');
   if (!ticket) return;
 
-  const res = await fetch(`/api/pedidos/${ticket}`);
+  const res = await fetch(`/api/pedidos/${encodeURIComponent(ticket)}`);
   if (!res.ok) {
-    resultadoEl.innerHTML = `<div class="aviso erro">Pedido nao encontrado.</div>`;
+    resultadoEl.innerHTML = `<div class="aviso erro">Pedido não encontrado. Confira o código.</div>`;
     return;
   }
   const dados = await res.json();
   resultadoEl.innerHTML = `
     <div class="aviso sucesso">
-      Ticket #${dados.ticket} — ${dados.produto} para ${dados.destinatario}<br>
+      <strong>${dados.ticket}</strong> — ${dados.produto} para <strong>${dados.destinatario}</strong><br>
       Status: <span class="status-${dados.status}">${legendaStatus(dados.status)}</span>
     </div>
   `;
 }
 
-carregarEstoque();
-carregarProdutos();
+// ---------- Boot ----------
+(async () => {
+  await carregarCategorias();
+  await carregarProdutos();
+  await carregarEstoque();
+})();

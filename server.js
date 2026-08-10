@@ -13,6 +13,11 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Atalho: /admin serve o painel do administrador (sem precisar do .html).
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 app.use('/api', rotasPublicas);
 app.use('/api/admin', rotasAdmin);
 app.use('/webhook', rotaWebhook); // ex: /webhook/pix
