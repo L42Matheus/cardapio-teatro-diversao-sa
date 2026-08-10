@@ -1,0 +1,88 @@
+* { box-sizing: border-box; }
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #f4f1ea;
+  color: #2b2b2b;
+  margin: 0;
+  padding: 0;
+}
+header {
+  background: #1f6f54;
+  color: white;
+  padding: 20px 24px;
+}
+header h1 { margin: 0; font-size: 1.4rem; }
+header p { margin: 4px 0 0; opacity: 0.85; font-size: 0.9rem; }
+main {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.produtos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.produto-card {
+  background: white;
+  border-radius: 10px;
+  padding: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  text-align: center;
+}
+.produto-card img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #eee;
+}
+.produto-card h3 { margin: 10px 0 4px; font-size: 1rem; }
+.produto-card .preco { color: #1f6f54; font-weight: bold; }
+button {
+  background: #1f6f54;
+  color: white;
+  border: none;
+  padding: 9px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+button:hover { background: #17543f; }
+button.secundario {
+  background: transparent;
+  color: #1f6f54;
+  border: 1px solid #1f6f54;
+}
+.card {
+  background: white;
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  margin-top: 16px;
+}
+label { display: block; margin-top: 10px; font-size: 0.85rem; color: #555; }
+input, select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+.status-pendente_pagamento { color: #b8860b; }
+.status-pago { color: #1f6f54; }
+.status-aguardando { color: #1a5fb4; }
+.status-entregue { color: #2e7d32; font-weight: bold; }
+.status-cancelado { color: #c0392b; }
+.oculto { display: none; }
+.aviso { padding: 10px; border-radius: 6px; margin-top: 10px; font-size: 0.9rem; }
+.aviso.erro { background: #fdecea; color: #c0392b; }
+.aviso.sucesso { background: #e8f5e9; color: #2e7d32; }
+table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.9rem; }
+th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; }
+th { color: #666; font-weight: 600; }
+select.small { width: auto; display: inline-block; }
+nav a { color: white; margin-right: 14px; font-size: 0.85rem; }

@@ -1,0 +1,13 @@
+{
+  "name": "evento-marketplace-pix",
+  "version": "1.0.0",
+  "description": "Prototipo: marketplace de evento com pagamento Pix (Banco Inter) e controle de pedidos/entregadores",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

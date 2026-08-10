@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mercado do Evento</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Mercado do Evento</h1>
+  <p id="estoque-info">Carregando vagas disponiveis...</p>
+</header>
+
+<main>
+  <section id="secao-produtos">
+    <h2>Produtos disponiveis</h2>
+    <div class="produtos" id="lista-produtos"></div>
+  </section>
+
+  <section id="secao-formulario" class="card oculto">
+    <h2>Comprar <span id="form-produto-nome"></span></h2>
+    <label>Seu nome
+      <input id="nomeComprador" type="text" placeholder="Seu nome">
+    </label>
+    <label>Seu contato (whatsapp)
+      <input id="contato" type="text" placeholder="(83) 90000-0000">
+    </label>
+    <label>Nome de quem vai receber
+      <input id="nomeDestinatario" type="text" placeholder="Nome do destinatario">
+    </label>
+    <div id="form-erro" class="aviso erro oculto"></div>
+    <button onclick="enviarPedido()">Gerar cobranca Pix</button>
+    <button class="secundario" onclick="cancelarFormulario()">Cancelar</button>
+  </section>
+
+  <section id="secao-pix" class="card oculto">
+    <h2>Pagamento Pix</h2>
+    <p>Ticket do pedido: <strong id="pix-ticket"></strong></p>
+    <p>Valor: <strong id="pix-valor"></strong></p>
+    <p>Copia e cola (simulado):</p>
+    <textarea readonly rows="3" style="width:100%" id="pix-copiacola"></textarea>
+    <p id="pix-status">Status: <span class="status-pendente_pagamento">aguardando pagamento...</span></p>
+    <button onclick="simularPagamento()">Simular pagamento (apenas demo)</button>
+  </section>
+
+  <section class="card">
+    <h2>Consultar pedido pelo ticket</h2>
+    <label>Numero do pedido
+      <input id="ticketConsulta" type="text" placeholder="Ex: 1">
+    </label>
+    <button onclick="consultarTicket()">Consultar</button>
+    <div id="resultado-consulta"></div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

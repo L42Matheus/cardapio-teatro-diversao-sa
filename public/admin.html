@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - Mercado do Evento</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Painel do Administrador</h1>
+  <nav><a href="/">&larr; Voltar ao site</a></nav>
+</header>
+
+<main style="max-width: 1000px;">
+  <section class="card">
+    <h2>Todos os pedidos</h2>
+    <button onclick="carregarPedidos()">Atualizar lista</button>
+    <table id="tabela-pedidos">
+      <thead>
+        <tr>
+          <th>Ticket</th>
+          <th>Produto</th>
+          <th>Comprador</th>
+          <th>Destinatario</th>
+          <th>Valor</th>
+          <th>Status</th>
+          <th>Entregador</th>
+          <th>Acoes</th>
+        </tr>
+      </thead>
+      <tbody id="corpo-tabela"></tbody>
+    </table>
+  </section>
+</main>
+
+<script src="admin.js"></script>
+</body>
+</html>
