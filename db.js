@@ -14,11 +14,13 @@ const LIMITE_TOTAL_PEDIDOS = 100; // <-- ajuste aqui o X (limite geral de compra
 
 // Categorias oferecidas na loja do EAC. A ordem aqui define a ordem das abas
 // que aparecem na tela de vendas.
+// Ordem das abas e da listagem "Todos": trotes primeiro (carro-chefe),
+// depois rosas, chocolates e botons.
 const CATEGORIAS = [
+  { id: 'trote',     nome: 'Trotes',     emoji: '💌' },
   { id: 'rosa',      nome: 'Rosas',      emoji: '🌹' },
   { id: 'chocolate', nome: 'Chocolates', emoji: '🍫' },
-  { id: 'boton',     nome: 'Botons',     emoji: '📛' },
-  { id: 'trote',     nome: 'Trotes',     emoji: '💌' }
+  { id: 'boton',     nome: 'Botons',     emoji: '📛' }
 ];
 
 function estadoInicial() {
@@ -27,6 +29,18 @@ function estadoInicial() {
       limiteTotal: LIMITE_TOTAL_PEDIDOS
     },
     produtos: [
+      // ----- Trotes (carro-chefe — nomes fictícios, ajustar com a equipe) -----
+      { id: 7,  categoria: 'trote',     nome: 'Trote do Anjo da Guarda', preco: 4.00, foto: '/uploads/produtos/trote-anjo.svg',
+        descricao: 'Um "anjinho" surpresa entrega uma mensagem carinhosa.', ativo: true },
+      { id: 8,  categoria: 'trote',     nome: 'Serenata do Coração',     preco: 5.00, foto: '/uploads/produtos/trote-serenata.svg',
+        descricao: 'A pessoa recebe uma canção ao vivo dos servos.', ativo: true },
+      { id: 9,  categoria: 'trote',     nome: 'Missão Fraterna',         preco: 3.00, foto: '/uploads/produtos/trote-missao.svg',
+        descricao: 'Um bilhete anônimo com uma oração é entregue à pessoa.', ativo: true },
+      { id: 10, categoria: 'trote',     nome: 'Abraço em Cristo',        preco: 4.00, foto: '/uploads/produtos/trote-abraco.svg',
+        descricao: 'Um grupo de servos vai até a pessoa entregar um abraço coletivo.', ativo: true },
+      { id: 11, categoria: 'trote',     nome: 'Dança da Alegria',        preco: 6.00, foto: '/uploads/produtos/trote-danca.svg',
+        descricao: 'Mini apresentação de dança feita para alegrar o encontrista.', ativo: true },
+
       // ----- Rosas -----
       { id: 1,  categoria: 'rosa',      nome: 'Rosa Única',           preco: 5.00, foto: '/uploads/produtos/rosa.svg',
         descricao: 'Uma rosa vermelha entregue com carinho para quem você escolher.', ativo: true },
@@ -43,19 +57,7 @@ function estadoInicial() {
       { id: 5,  categoria: 'boton',     nome: 'Boton EAC',            preco: 3.00, foto: '/uploads/produtos/boton.svg',
         descricao: 'Boton oficial do EAC Santo Antônio.', ativo: true },
       { id: 6,  categoria: 'boton',     nome: 'Kit 3 Botons',         preco: 7.00, foto: '/uploads/produtos/boton-kit.svg',
-        descricao: 'Trio de botons coloridos do EAC.', ativo: true },
-
-      // ----- Trotes (nomes fictícios, ajustar depois com a equipe) -----
-      { id: 7,  categoria: 'trote',     nome: 'Trote do Anjo da Guarda', preco: 4.00, foto: '/uploads/produtos/trote-anjo.svg',
-        descricao: 'Um "anjinho" surpresa entrega uma mensagem carinhosa.', ativo: true },
-      { id: 8,  categoria: 'trote',     nome: 'Serenata do Coração',     preco: 5.00, foto: '/uploads/produtos/trote-serenata.svg',
-        descricao: 'A pessoa recebe uma canção ao vivo dos servos.', ativo: true },
-      { id: 9,  categoria: 'trote',     nome: 'Missão Fraterna',         preco: 3.00, foto: '/uploads/produtos/trote-missao.svg',
-        descricao: 'Um bilhete anônimo com uma oração é entregue à pessoa.', ativo: true },
-      { id: 10, categoria: 'trote',     nome: 'Abraço em Cristo',        preco: 4.00, foto: '/uploads/produtos/trote-abraco.svg',
-        descricao: 'Um grupo de servos vai até a pessoa entregar um abraço coletivo.', ativo: true },
-      { id: 11, categoria: 'trote',     nome: 'Dança da Alegria',        preco: 6.00, foto: '/uploads/produtos/trote-danca.svg',
-        descricao: 'Mini apresentação de dança feita para alegrar o encontrista.', ativo: true }
+        descricao: 'Trio de botons coloridos do EAC.', ativo: true }
     ],
     entregadores: [
       { id: 1, nome: 'Equipe Trote 1' },
@@ -127,7 +129,7 @@ function gerarCodigoPedido(dados) {
   return `EAC-${Date.now().toString(36).toUpperCase().slice(-6)}`;
 }
 
-function criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario }) {
+function criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario, equipeDestinatario }) {
   const dados = carregar();
 
   const usados = contarPedidosValidos(dados);
@@ -152,6 +154,7 @@ function criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario }) {
     nomeComprador,
     contato,
     nomeDestinatario,
+    equipeDestinatario: equipeDestinatario || null,
     status: 'pendente_pagamento', // pendente_pagamento -> pago -> aguardando -> entregue (ou cancelado)
     pixTxid: `TXID-${id}-${Date.now()}`,
     entregadorId: null,
@@ -213,14 +216,65 @@ function atribuirEntregador(pedidoId, entregadorId) {
   return pedido;
 }
 
-function marcarEntregue(pedidoId) {
+// Tempo (ms) que uma reserva ("peguei") dura antes de expirar sozinha,
+// liberando o pedido pra outra equipe. Evita pedidos "presos" quando
+// uma equipe clica em "Peguei" e esquece.
+const RESERVA_TTL_MS = 10 * 60 * 1000; // 10 minutos
+
+function reservaEstaAtiva(pedido) {
+  if (!pedido.claimedBy || !pedido.claimedAt) return false;
+  return (Date.now() - new Date(pedido.claimedAt).getTime()) < RESERVA_TTL_MS;
+}
+
+function pegarPedido(pedidoId, equipe) {
+  if (!equipe) throw new Error('EQUIPE_OBRIGATORIA');
   const dados = carregar();
   const pedido = dados.pedidos.find(p => p.id === Number(pedidoId));
   if (!pedido) throw new Error('PEDIDO_NAO_ENCONTRADO');
-  if (pedido.status !== 'aguardando') {
-    throw new Error('PEDIDO_NAO_ESTA_AGUARDANDO');
+  if (pedido.status !== 'pago' && pedido.status !== 'aguardando') {
+    throw new Error('PEDIDO_NAO_DISPONIVEL');
+  }
+  if (pedido.claimedBy && pedido.claimedBy !== equipe && reservaEstaAtiva(pedido)) {
+    throw new Error('PEDIDO_JA_PEGO');
+  }
+  pedido.claimedBy = equipe;
+  pedido.claimedAt = new Date().toISOString();
+  pedido.status = 'aguardando';
+  pedido.atualizadoEm = new Date().toISOString();
+  salvar(dados);
+  return pedido;
+}
+
+function liberarPedido(pedidoId, equipe, forcado) {
+  const dados = carregar();
+  const pedido = dados.pedidos.find(p => p.id === Number(pedidoId));
+  if (!pedido) throw new Error('PEDIDO_NAO_ENCONTRADO');
+  if (pedido.status === 'entregue') throw new Error('PEDIDO_JA_ENTREGUE');
+  if (pedido.claimedBy && pedido.claimedBy !== equipe && !forcado && reservaEstaAtiva(pedido)) {
+    throw new Error('PEDIDO_NAO_SEU');
+  }
+  pedido.claimedBy = null;
+  pedido.claimedAt = null;
+  pedido.status = 'pago';
+  pedido.atualizadoEm = new Date().toISOString();
+  salvar(dados);
+  return pedido;
+}
+
+function marcarEntregue(pedidoId, equipe) {
+  const dados = carregar();
+  const pedido = dados.pedidos.find(p => p.id === Number(pedidoId));
+  if (!pedido) throw new Error('PEDIDO_NAO_ENCONTRADO');
+  if (pedido.status !== 'pago' && pedido.status !== 'aguardando') {
+    throw new Error('PEDIDO_NAO_PAGO');
+  }
+  // Se está reservado por outra equipe (ativa), bloqueia — evita
+  // duas equipes marcarem entregue ao mesmo tempo.
+  if (equipe && pedido.claimedBy && pedido.claimedBy !== equipe && reservaEstaAtiva(pedido)) {
+    throw new Error('PEDIDO_DE_OUTRA_EQUIPE');
   }
   pedido.status = 'entregue';
+  pedido.equipeEntregou = equipe || pedido.claimedBy || null;
   pedido.atualizadoEm = new Date().toISOString();
   salvar(dados);
   return pedido;
@@ -246,6 +300,8 @@ module.exports = {
   listarPedidos,
   atualizarStatusPorTxid,
   atribuirEntregador,
+  pegarPedido,
+  liberarPedido,
   marcarEntregue,
   listarEntregadores,
   listarCategorias

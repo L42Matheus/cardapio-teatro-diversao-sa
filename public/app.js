@@ -115,10 +115,11 @@ async function enviarPedido() {
   const nomeComprador = document.getElementById('nomeComprador').value.trim();
   const contato = document.getElementById('contato').value.trim();
   const nomeDestinatario = document.getElementById('nomeDestinatario').value.trim();
+  const equipeDestinatario = document.getElementById('equipeDestinatario').value.trim();
   const erroEl = document.getElementById('form-erro');
 
-  if (!nomeComprador || !nomeDestinatario) {
-    erroEl.textContent = 'Preencha seu nome e o nome de quem vai receber.';
+  if (!nomeComprador || !nomeDestinatario || !equipeDestinatario) {
+    erroEl.textContent = 'Preencha seu nome, o nome e a equipe de quem vai receber.';
     erroEl.classList.remove('oculto');
     return;
   }
@@ -130,7 +131,8 @@ async function enviarPedido() {
       produtoId: produtoSelecionado,
       nomeComprador,
       contato,
-      nomeDestinatario
+      nomeDestinatario,
+      equipeDestinatario
     })
   });
 

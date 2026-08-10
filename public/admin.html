@@ -15,6 +15,7 @@
     <div class="eac-titulo" style="flex:1">
       <h1>Painel Admin — Cardápio, Teatro e Diversão SA</h1>
       <p>EAC — Paróquia de Santo Antônio · Gestão dos pedidos</p>
+      <p id="badge-equipe" style="margin:4px 0 0; font-size:0.85rem;"></p>
     </div>
     <nav><a href="/">&larr; Ver loja</a></nav>
   </div>
@@ -29,51 +30,71 @@
   </section>
 
   <section class="card">
-    <h2>Todos os pedidos</h2>
-
-    <div class="filtros">
-      <label style="margin:0;">
-        Status
-        <select id="filtro-status" class="small">
-          <option value="todos">Todos</option>
-          <option value="pendente_pagamento">Aguardando pagamento</option>
-          <option value="pago">Pago</option>
-          <option value="aguardando">Aguardando entrega</option>
-          <option value="entregue">Entregue</option>
-          <option value="cancelado">Cancelado</option>
-        </select>
-      </label>
-      <label style="margin:0;">
-        Categoria
-        <select id="filtro-categoria" class="small">
-          <option value="todos">Todas</option>
-        </select>
-      </label>
-      <label style="margin:0;">
-        Buscar
-        <input id="filtro-busca" type="text" placeholder="Comprador ou destinatário" style="width:220px;">
-      </label>
-      <div style="align-self:flex-end;">
-        <button class="secundario" onclick="carregarPedidos()">Atualizar agora</button>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+      <h2 style="margin:0;">🚚 A entregar <span id="contador-pendentes" style="color:var(--texto-fraco); font-weight:normal; font-size:0.85rem;"></span></h2>
+      <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+        <label style="margin:0;">
+          Categoria
+          <select id="filtro-categoria-pendentes" class="small">
+            <option value="todos">Todas</option>
+          </select>
+        </label>
+        <label style="margin:0;">
+          Buscar
+          <input id="filtro-busca-pendentes" type="text" placeholder="Nome ou equipe" style="width:200px;">
+        </label>
+        <button class="secundario" onclick="carregarPedidos()">Atualizar</button>
       </div>
     </div>
+    <p style="color:var(--texto-fraco); font-size:0.85rem; margin:8px 0 0;">
+      Ordem de chegada — pedido mais antigo primeiro. Clique em <strong>Entregue</strong> quando a entrega for feita.
+    </p>
 
     <div class="tabela-wrap">
-      <table id="tabela-pedidos">
+      <table>
         <thead>
           <tr>
             <th>Ticket</th>
+            <th>Hora</th>
             <th>Categoria</th>
             <th>Produto</th>
-            <th>Comprador</th>
             <th>Destinatário</th>
+            <th>Equipe</th>
+            <th>Comprador</th>
             <th>Valor</th>
-            <th>Status</th>
-            <th>Entregador</th>
-            <th>Ações</th>
+            <th>Ação</th>
           </tr>
         </thead>
-        <tbody id="corpo-tabela"></tbody>
+        <tbody id="corpo-pendentes"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+      <h2 style="margin:0;">✅ Entregues <span id="contador-entregues" style="color:var(--texto-fraco); font-weight:normal; font-size:0.85rem;"></span></h2>
+      <label style="margin:0;">
+        Buscar
+        <input id="filtro-busca-entregues" type="text" placeholder="Nome ou equipe" style="width:200px;">
+      </label>
+    </div>
+
+    <div class="tabela-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ticket</th>
+            <th>Entregue às</th>
+            <th>Por</th>
+            <th>Categoria</th>
+            <th>Produto</th>
+            <th>Destinatário</th>
+            <th>Equipe</th>
+            <th>Comprador</th>
+            <th>Valor</th>
+          </tr>
+        </thead>
+        <tbody id="corpo-entregues"></tbody>
       </table>
     </div>
   </section>

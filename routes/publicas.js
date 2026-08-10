@@ -24,14 +24,14 @@ router.get('/estoque', (req, res) => {
 
 // POST /api/pedidos -> cria um novo pedido e gera a cobranca Pix
 router.post('/pedidos', (req, res) => {
-  const { produtoId, nomeComprador, contato, nomeDestinatario } = req.body;
+  const { produtoId, nomeComprador, contato, nomeDestinatario, equipeDestinatario } = req.body;
 
-  if (!produtoId || !nomeComprador || !nomeDestinatario) {
-    return res.status(400).json({ erro: 'Preencha produto, seu nome e o nome de quem vai receber.' });
+  if (!produtoId || !nomeComprador || !nomeDestinatario || !equipeDestinatario) {
+    return res.status(400).json({ erro: 'Preencha produto, seu nome, nome e equipe de quem vai receber.' });
   }
 
   try {
-    const pedido = db.criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario });
+    const pedido = db.criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario, equipeDestinatario });
     const cobranca = criarCobrancaPix(pedido); // chamada (mock) a API Pix do Inter
     return res.status(201).json({
       ticket: pedido.codigo, // código público, ex: EAC-XK7B

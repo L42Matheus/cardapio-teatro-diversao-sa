@@ -38,15 +38,52 @@ router.post('/pedidos/:id/atribuir', (req, res) => {
   }
 });
 
-// POST /api/admin/pedidos/:id/entregar -> marca como entregue
-router.post('/pedidos/:id/entregar', (req, res) => {
+// POST /api/admin/pedidos/:id/pegar { equipe } -> reserva o pedido pra uma equipe
+router.post('/pedidos/:id/pegar', (req, res) => {
+  const { equipe } = req.body;
   try {
-    const pedido = db.marcarEntregue(req.params.id);
+    const pedido = db.pegarPedido(req.params.id, equipe);
+    res.json(pedido);
+  } catch (err) {
+    const mapa = {
+      PEDIDO_NAO_ENCONTRADO:  [404, 'Pedido nao encontrado.'],
+      PEDIDO_NAO_DISPONIVEL:  [409, 'Pedido nao esta disponivel para ser pego.'],
+      PEDIDO_JA_PEGO:         [409, 'Este pedido ja foi pego por outra equipe.'],
+      EQUIPE_OBRIGATORIA:     [400, 'Informe a equipe.']
+    };
+    const [codigo, msg] = mapa[err.message] || [500, 'Erro ao pegar o pedido.'];
+    res.status(codigo).json({ erro: msg });
+  }
+});
+
+// POST /api/admin/pedidos/:id/liberar { equipe, forcado } -> libera a reserva
+router.post('/pedidos/:id/liberar', (req, res) => {
+  const { equipe, forcado } = req.body;
+  try {
+    const pedido = db.liberarPedido(req.params.id, equipe, !!forcado);
     res.json(pedido);
   } catch (err) {
     const mapa = {
       PEDIDO_NAO_ENCONTRADO: [404, 'Pedido nao encontrado.'],
-      PEDIDO_NAO_ESTA_AGUARDANDO: [409, 'Pedido precisa estar "aguardando" (ja atribuido) para ser marcado como entregue.']
+      PEDIDO_JA_ENTREGUE:    [409, 'Pedido ja foi entregue.'],
+      PEDIDO_NAO_SEU:        [409, 'Este pedido esta com outra equipe.']
+    };
+    const [codigo, msg] = mapa[err.message] || [500, 'Erro ao liberar o pedido.'];
+    res.status(codigo).json({ erro: msg });
+  }
+});
+
+// POST /api/admin/pedidos/:id/entregar { equipe } -> marca como entregue
+router.post('/pedidos/:id/entregar', (req, res) => {
+  const { equipe } = req.body || {};
+  try {
+    const pedido = db.marcarEntregue(req.params.id, equipe);
+    res.json(pedido);
+  } catch (err) {
+    const mapa = {
+      PEDIDO_NAO_ENCONTRADO:   [404, 'Pedido nao encontrado.'],
+      PEDIDO_NAO_PAGO:         [409, 'Pedido precisa estar pago para ser marcado como entregue.'],
+      PEDIDO_DE_OUTRA_EQUIPE:  [409, 'Este pedido esta reservado por outra equipe.']
     };
     const [codigo, msg] = mapa[err.message] || [500, 'Erro ao marcar como entregue.'];
     res.status(codigo).json({ erro: msg });
