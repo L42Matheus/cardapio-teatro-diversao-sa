@@ -45,12 +45,18 @@
       <strong>🚨 Pedidos pausados!</strong> Ninguém consegue enviar novos pedidos no site principal enquanto o botão do pânico estiver ativo.
     </section>
 
-    <section>
-      <h2>Resumo</h2>
+    <nav class="abas abas-admin" id="abas-admin">
+      <button type="button" class="aba ativa" data-aba="pendentes">🚚 A entregar <span id="aba-contador-pendentes"></span></button>
+      <button type="button" class="aba" data-aba="entregues">✅ Entregues <span id="aba-contador-entregues"></span></button>
+      <button type="button" class="aba" data-aba="estoque" id="aba-estoque">📦 Estoque</button>
+      <button type="button" class="aba" data-aba="resumo">📊 Resumo</button>
+    </nav>
+
+    <section id="tab-resumo" class="tab-conteudo oculto">
       <div class="resumo" id="resumo"></div>
     </section>
 
-    <section class="card">
+    <section id="tab-pendentes" class="tab-conteudo card">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
         <h2 style="margin:0;">🚚 A entregar <span id="contador-pendentes" style="color:var(--texto-fraco); font-weight:normal; font-size:0.85rem;"></span></h2>
         <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
@@ -91,7 +97,7 @@
       </div>
     </section>
 
-    <section class="card">
+    <section id="tab-entregues" class="tab-conteudo card oculto">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
         <h2 style="margin:0;">✅ Entregues <span id="contador-entregues" style="color:var(--texto-fraco); font-weight:normal; font-size:0.85rem;"></span></h2>
         <label style="margin:0;">
@@ -120,7 +126,7 @@
       </div>
     </section>
 
-    <section id="secao-estoque" class="card oculto">
+    <section id="tab-estoque" class="tab-conteudo card oculto" data-somente-admin="true">
       <h2 style="margin-top:0;">📦 Estoque dos produtos</h2>
       <p style="color:var(--texto-fraco); font-size:0.85rem;">
         Só o admin pode editar o estoque. Quando chegar a 0, o produto aparece como "Esgotado" no site e não pode mais ser comprado.

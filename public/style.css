@@ -463,6 +463,19 @@ tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--creme); }
 select.small { width: auto; display: inline-block; padding: 6px 8px; }
 
+/* Abas do painel admin (mesma pilula da loja, mas com margem propria) */
+.abas-admin {
+  margin: 12px 0 16px;
+}
+.aba .contador {
+  background: rgba(0,0,0,0.08);
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  margin-left: 4px;
+}
+.aba.ativa .contador { background: rgba(0,0,0,0.15); }
+
 /* Resumo admin */
 .resumo {
   display: grid;

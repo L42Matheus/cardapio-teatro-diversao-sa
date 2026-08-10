@@ -96,7 +96,9 @@ async function mostrarPainel() {
     `Logado como <strong>${sessao.nome}</strong> (${ehAdmin ? 'admin' : 'equipe'}) ` +
     `<a href="#" onclick="event.preventDefault(); sair();" style="margin-left:8px; font-size:0.8rem;">sair</a>`;
   document.getElementById('botao-panico').classList.toggle('oculto', !ehAdmin);
-  document.getElementById('secao-estoque').classList.toggle('oculto', !ehAdmin);
+  // Aba "Estoque" so aparece para admin.
+  document.getElementById('aba-estoque').classList.toggle('oculto', !ehAdmin);
+  configurarAbas();
 
   await carregarCategorias();
   await carregarPedidos();
@@ -176,6 +178,27 @@ async function salvarEstoque(produtoId) {
   const dados = await res.json();
   if (!res.ok) { alert(dados.erro || 'Erro ao salvar estoque.'); return; }
   input.value = dados.estoque;
+}
+
+// ---------- Abas do painel ----------
+function configurarAbas() {
+  document.querySelectorAll('.abas-admin .aba').forEach(btn => {
+    btn.onclick = () => trocarAba(btn.dataset.aba);
+  });
+  // Restaura ultima aba usada; default = pendentes
+  const salva = localStorage.getItem('abaAdminAtiva') || 'pendentes';
+  const abaBtn = document.querySelector(`.abas-admin .aba[data-aba="${salva}"]`);
+  const valida = abaBtn && !abaBtn.classList.contains('oculto') ? salva : 'pendentes';
+  trocarAba(valida);
+}
+function trocarAba(nome) {
+  document.querySelectorAll('.abas-admin .aba').forEach(a => {
+    a.classList.toggle('ativa', a.dataset.aba === nome);
+  });
+  document.querySelectorAll('.tab-conteudo').forEach(s => {
+    s.classList.toggle('oculto', s.id !== 'tab-' + nome);
+  });
+  localStorage.setItem('abaAdminAtiva', nome);
 }
 
 // ---------- API ----------
@@ -260,6 +283,8 @@ function renderPendentes() {
   });
 
   document.getElementById('contador-pendentes').textContent = `(${lista.length})`;
+  const badgePend = document.getElementById('aba-contador-pendentes');
+  if (badgePend) badgePend.innerHTML = lista.length ? `<span class="contador">${lista.length}</span>` : '';
   corpo.innerHTML = '';
 
   if (lista.length === 0) {
@@ -324,6 +349,8 @@ function renderEntregues() {
     .sort((a, b) => new Date(b.atualizadoEm) - new Date(a.atualizadoEm));
 
   document.getElementById('contador-entregues').textContent = `(${lista.length})`;
+  const badgeEntr = document.getElementById('aba-contador-entregues');
+  if (badgeEntr) badgeEntr.innerHTML = lista.length ? `<span class="contador">${lista.length}</span>` : '';
   corpo.innerHTML = '';
 
   if (lista.length === 0) {
