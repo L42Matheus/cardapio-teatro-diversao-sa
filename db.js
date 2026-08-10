@@ -131,6 +131,16 @@ function aplicarMigracoes(dados) {
     }
   }
 
+  // Bancos anteriores ao suporte a estoque nao tem o campo em cada produto.
+  if (Array.isArray(dados.produtos)) {
+    dados.produtos.forEach(p => {
+      if (typeof p.estoque !== 'number' || Number.isNaN(p.estoque)) {
+        p.estoque = 30;
+        alterou = true;
+      }
+    });
+  }
+
   if (alterou) salvar(dados);
 }
 

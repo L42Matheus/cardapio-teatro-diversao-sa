@@ -17,7 +17,6 @@
       <p>EAC — Paróquia de Santo Antônio · Gestão dos pedidos</p>
       <p id="badge-equipe" style="margin:4px 0 0; font-size:0.85rem;"></p>
     </div>
-    <button id="botao-panico" class="botao-panico oculto" onclick="alternarPanico()">🚨 Botão do Pânico</button>
     <nav><a href="/">&larr; Ver loja</a></nav>
   </div>
 </header>
@@ -40,10 +39,6 @@
   </section>
 
   <div id="painel-admin" class="oculto">
-
-    <section id="aviso-panico" class="card oculto" style="border-left: 4px solid var(--vermelho); background: #fdecea;">
-      <strong>🚨 Pedidos pausados!</strong> Ninguém consegue enviar novos pedidos no site principal enquanto o botão do pânico estiver ativo.
-    </section>
 
     <nav class="abas abas-admin" id="abas-admin">
       <button type="button" class="aba ativa" data-aba="pendentes">🚚 A entregar <span id="aba-contador-pendentes"></span></button>
@@ -132,13 +127,19 @@
         Só o admin pode editar o estoque. Quando chegar a 0, o produto aparece como "Esgotado" no site e não pode mais ser comprado.
       </p>
 
+      <p style="color:var(--texto-fraco); font-size:0.85rem; margin:6px 0 10px;">
+        <strong>Vendidos</strong>: quantos ja saíram (pagos ou entregues) —
+        <strong>Disponíveis</strong>: quantos o site ainda pode vender (edite pra pausar/reabrir) —
+        <strong>Total</strong>: soma dos dois.
+      </p>
       <div class="tabela-wrap">
         <table>
           <thead>
             <tr>
               <th>Produto</th>
-              <th>Categoria</th>
-              <th>Estoque</th>
+              <th style="text-align:center;">Vendidos</th>
+              <th>Disponíveis</th>
+              <th style="text-align:center;">Total</th>
               <th>Ação</th>
             </tr>
           </thead>

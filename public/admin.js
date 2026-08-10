@@ -1,6 +1,5 @@
 let categoriasCache = [];
 let pedidosCache = [];
-let pedidosPausados = false;
 let sessao = null; // { token, usuario, nome, papel }
 
 const RESERVA_TTL_MS = 10 * 60 * 1000;
@@ -95,7 +94,6 @@ async function mostrarPainel() {
   document.getElementById('badge-equipe').innerHTML =
     `Logado como <strong>${sessao.nome}</strong> (${ehAdmin ? 'admin' : 'equipe'}) ` +
     `<a href="#" onclick="event.preventDefault(); sair();" style="margin-left:8px; font-size:0.8rem;">sair</a>`;
-  document.getElementById('botao-panico').classList.toggle('oculto', !ehAdmin);
   // Aba "Estoque" so aparece para admin.
   document.getElementById('aba-estoque').classList.toggle('oculto', !ehAdmin);
   configurarAbas();
@@ -105,9 +103,7 @@ async function mostrarPainel() {
   setInterval(carregarPedidos, 5000);
 
   if (ehAdmin) {
-    await carregarStatusPanico();
     await carregarEstoque();
-    setInterval(carregarStatusPanico, 5000);
   }
 
   document.getElementById('filtro-categoria-pendentes').addEventListener('change', renderPendentes);
@@ -115,51 +111,48 @@ async function mostrarPainel() {
   document.getElementById('filtro-busca-entregues').addEventListener('input', renderEntregues);
 }
 
-// ---------- Botão do pânico (somente admin) ----------
-async function carregarStatusPanico() {
-  const res = await apiAdmin('/status');
-  const dados = await res.json();
-  pedidosPausados = !!dados.pausado;
-  atualizarBotaoPanico();
-}
-
-function atualizarBotaoPanico() {
-  const botao = document.getElementById('botao-panico');
-  const aviso = document.getElementById('aviso-panico');
-  botao.textContent = pedidosPausados ? '✅ Retomar pedidos' : '🚨 Botão do Pânico';
-  botao.classList.toggle('ativo', pedidosPausados);
-  aviso.classList.toggle('oculto', !pedidosPausados);
-}
-
-async function alternarPanico() {
-  const mensagem = pedidosPausados
-    ? 'Retomar os pedidos no site principal?'
-    : 'Isso vai PAUSAR IMEDIATAMENTE os pedidos no site principal. Confirmar?';
-  if (!confirm(mensagem)) return;
-
-  const res = await apiAdmin('/panico', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ativar: !pedidosPausados })
-  });
-  const dados = await res.json();
-  pedidosPausados = !!dados.pausado;
-  atualizarBotaoPanico();
-}
-
 // ---------- Estoque (somente admin) ----------
+let estoqueCache = []; // lista de produtos (com estoque atual) vinda da API
+
 async function carregarEstoque() {
   const res = await apiAdmin('/produtos');
-  const lista = await res.json();
+  estoqueCache = await res.json();
+  renderEstoque();
+}
+
+// Vendas contam pedidos que geraram receita — pagos ou ja entregues.
+// Pedidos pendentes de pagamento ou cancelados nao contam.
+function vendidosDoProduto(produtoId) {
+  return pedidosCache.filter(p =>
+    p.produtoId === produtoId &&
+    p.status !== 'pendente_pagamento' &&
+    p.status !== 'cancelado'
+  ).length;
+}
+
+function renderEstoque() {
   const corpo = document.getElementById('corpo-estoque');
+  if (!corpo || estoqueCache.length === 0) return;
   corpo.innerHTML = '';
 
-  lista.forEach(p => {
+  estoqueCache.forEach(p => {
+    const vendidos = vendidosDoProduto(p.id);
+    const disponivel = Number.isFinite(Number(p.estoque)) ? Number(p.estoque) : 0;
+    const total = vendidos + disponivel;
+    const esgotado = disponivel <= 0;
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${p.nome}</td>
-      <td>${nomeCategoria(p.categoria)}</td>
-      <td><input type="number" min="0" step="1" value="${p.estoque}" id="estoque-input-${p.id}" style="width:80px;"></td>
+      <td>
+        <strong>${p.nome}</strong><br>
+        <small style="color:var(--texto-fraco);">${nomeCategoria(p.categoria)}</small>
+      </td>
+      <td style="text-align:center;"><strong>${vendidos}</strong></td>
+      <td>
+        <input type="number" min="0" step="1" value="${p.estoque}" id="estoque-input-${p.id}" style="width:70px; text-align:center;">
+        ${esgotado ? '<br><small style="color:var(--vermelho); font-weight:600;">esgotado</small>' : ''}
+      </td>
+      <td style="text-align:center; color:var(--texto-fraco);">${total}</td>
       <td><button class="secundario" onclick="salvarEstoque(${p.id})">Salvar</button></td>
     `;
     corpo.appendChild(tr);
@@ -177,7 +170,10 @@ async function salvarEstoque(produtoId) {
   });
   const dados = await res.json();
   if (!res.ok) { alert(dados.erro || 'Erro ao salvar estoque.'); return; }
-  input.value = dados.estoque;
+  // Atualiza no cache e re-renderiza pra recomputar Total.
+  const idx = estoqueCache.findIndex(p => p.id === produtoId);
+  if (idx >= 0) estoqueCache[idx].estoque = dados.estoque;
+  renderEstoque();
 }
 
 // ---------- Abas do painel ----------
@@ -381,6 +377,9 @@ async function carregarPedidos() {
   renderResumo(pedidosCache);
   renderPendentes();
   renderEntregues();
+  // A tabela de estoque mostra a contagem de vendidos por produto (derivada
+  // dos pedidos), entao precisa re-renderizar quando pedidos mudam.
+  renderEstoque();
 }
 
 // ---------- Ações ----------

@@ -364,18 +364,6 @@ button.destaque {
 }
 button.destaque:hover:not(:disabled) { background: var(--amarelo-esc); color: var(--branco); }
 
-.botao-panico {
-  background: var(--vermelho);
-  color: var(--branco);
-}
-.botao-panico:hover:not(:disabled) { background: #a72c2c; }
-.botao-panico.ativo {
-  animation: piscar-panico 1s infinite;
-}
-@keyframes piscar-panico {
-  50% { opacity: 0.6; }
-}
-
 /* ---------------- Cartões / formulário ---------------- */
 
 .card {
@@ -540,8 +528,7 @@ select.small { width: auto; display: inline-block; padding: 6px 8px; }
 
 /* Mobile ajustes */
 /* Header responsivo: em telas menores o titulo diminui e o nav
-   (Ver loja / botao do panico) desce pra proxima linha, ocupando
-   largura total pra nao brigar com o titulo longo. */
+   (Ver loja) desce pra proxima linha, ocupando largura total. */
 @media (max-width: 820px) {
   .eac-titulo h1 { font-size: 1.15rem; letter-spacing: 0.5px; }
   .eac-header nav {
@@ -551,11 +538,6 @@ select.small { width: auto; display: inline-block; padding: 6px 8px; }
     margin-top: 6px;
   }
   .eac-header nav a { margin-left: 0; }
-  #botao-panico {
-    order: 9;
-    width: 100%;
-    margin-top: 8px;
-  }
 }
 
 @media (max-width: 520px) {
