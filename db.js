@@ -31,11 +31,12 @@ function estadoInicial() {
     config: {
       pedidosPausados: false
     },
-    // Usuario admin fixo (usuario/senha: neymar). Tem acesso total, incluindo
+    // Usuario admin fixo (usuario: teatro). Tem acesso total, incluindo
     // criar equipes e o botao do panico. Equipes criadas pelo admin entram
-    // aqui com papel 'equipe'.
+    // aqui com papel 'equipe'. A senha inicial e a mesma do usuario antigo
+    // ('neymar') — pra ficar consistente com o que ja esta em producao.
     usuarios: [
-      { id: 1, usuario: 'neymar', senhaHash: hashSenha('neymar'), papel: 'admin', nome: 'Admin' }
+      { id: 1, usuario: 'teatro', senhaHash: hashSenha('neymar'), papel: 'admin', nome: 'Admin' }
     ],
     proximoUsuarioId: 2,
     // Estoque por produto (editavel apenas pelo admin, no painel). Ajuste os
@@ -85,7 +86,33 @@ function carregar() {
     salvar(estadoInicial());
   }
   const raw = fs.readFileSync(DB_PATH, 'utf-8');
-  return JSON.parse(raw);
+  const dados = JSON.parse(raw);
+  aplicarMigracoes(dados);
+  return dados;
+}
+
+// Migracoes leves aplicadas a bancos ja existentes. Rodam a cada carga
+// mas so alteram/salvam se ainda nao foram aplicadas — idempotentes.
+function aplicarMigracoes(dados) {
+  let alterou = false;
+
+  // Bancos antigos (anteriores ao suporte a login) nao tem 'usuarios'.
+  if (!Array.isArray(dados.usuarios)) {
+    dados.usuarios = [
+      { id: 1, usuario: 'teatro', senhaHash: hashSenha('neymar'), papel: 'admin', nome: 'Admin' }
+    ];
+    dados.proximoUsuarioId = dados.proximoUsuarioId || 2;
+    alterou = true;
+  } else {
+    // Renomeia o antigo admin "neymar" -> "teatro" mantendo a mesma senha.
+    const antigoAdmin = dados.usuarios.find(u => u.usuario === 'neymar' && u.papel === 'admin');
+    if (antigoAdmin) {
+      antigoAdmin.usuario = 'teatro';
+      alterou = true;
+    }
+  }
+
+  if (alterou) salvar(dados);
 }
 
 function salvar(dados) {
@@ -330,7 +357,7 @@ function listarCategorias() {
 }
 
 // ---- Usuarios / autenticacao ----
-// Papeis: 'admin' (usuario neymar, fixo) e 'equipe' (criados pelo admin).
+// Papeis: 'admin' (usuario teatro, fixo) e 'equipe' (criados pelo admin).
 
 function sanitizarUsuario(u) {
   return { id: u.id, usuario: u.usuario, nome: u.nome, papel: u.papel };

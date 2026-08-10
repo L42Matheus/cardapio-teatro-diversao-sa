@@ -3,7 +3,7 @@
 //
 // Autenticacao por usuario/senha (POST /login), com token de sessao em
 // memoria (perdido se o servidor reiniciar — aceitavel pro porte do evento).
-// Papel 'admin' (usuario fixo "neymar") tem acesso a tudo. Papel 'equipe'
+// Papel 'admin' (usuario fixo "teatro") tem acesso a tudo. Papel 'equipe'
 // (criado pelo admin em /usuarios) tem acesso a tudo, EXCETO criar/remover
 // usuarios e o botao do panico.
 
