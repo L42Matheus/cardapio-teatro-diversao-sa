@@ -190,25 +190,6 @@ function legendaStatus(status) {
   return legendas[status] || status;
 }
 
-async function consultarTicket() {
-  const ticket = document.getElementById('ticketConsulta').value.trim().toUpperCase();
-  const resultadoEl = document.getElementById('resultado-consulta');
-  if (!ticket) return;
-
-  const res = await fetch(`/api/pedidos/${encodeURIComponent(ticket)}`);
-  if (!res.ok) {
-    resultadoEl.innerHTML = `<div class="aviso erro">Pedido não encontrado. Confira o código.</div>`;
-    return;
-  }
-  const dados = await res.json();
-  resultadoEl.innerHTML = `
-    <div class="aviso sucesso">
-      <strong>${dados.ticket}</strong> — ${dados.produto} para <strong>${dados.destinatario}</strong><br>
-      Status: <span class="status-${dados.status}">${legendaStatus(dados.status)}</span>
-    </div>
-  `;
-}
-
 // ---------- Boot ----------
 (async () => {
   await carregarCategorias();

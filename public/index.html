@@ -24,7 +24,10 @@
 <main>
 
   <section>
-    <h2>Escolha o que enviar</h2>
+    <div class="topo-loja">
+      <h2 style="margin:0;">Escolha o que enviar</h2>
+      <a href="/consultar.html" class="botao-link secundario">Consultar meu pedido</a>
+    </div>
     <div class="abas" id="abas-categorias"></div>
     <div class="produtos" id="lista-produtos"></div>
   </section>
@@ -62,15 +65,6 @@
       Guarde o número do ticket para acompanhar o status da entrega mais abaixo.
     </div>
     <button class="secundario" onclick="simularPagamento()" style="margin-top:12px;">Simular pagamento (apenas demo)</button>
-  </section>
-
-  <section class="card">
-    <h2>Consultar meu pedido</h2>
-    <label>Código do pedido
-      <input id="ticketConsulta" type="text" placeholder="Ex: EAC-XK7B" style="text-transform:uppercase;">
-    </label>
-    <button onclick="consultarTicket()" style="margin-top:10px;">Consultar</button>
-    <div id="resultado-consulta"></div>
   </section>
 
 </main>

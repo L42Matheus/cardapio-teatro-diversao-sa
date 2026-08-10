@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consultar meu pedido — EAC Santo Antônio</title>
+<link rel="icon" type="image/svg+xml" href="/logo-eac.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="eac-header">
+  <div class="eac-topo">
+    <img class="eac-logo" src="/logo-eac.svg" alt="Logo EAC">
+    <div class="eac-titulo" style="flex:1">
+      <h1>EAC — Paróquia de Santo Antônio</h1>
+      <p>Consulta de pedidos</p>
+    </div>
+    <nav><a href="/">&larr; Voltar à loja</a></nav>
+  </div>
+</header>
+<div class="eac-faixa"></div>
+
+<main class="consultar-main">
+
+  <section class="consultar-card">
+    <img class="consultar-logo" src="/logo-eac-full.svg" alt="EAC — Paróquia de Santo Antônio">
+    <h2 class="frase-caminho">Estou a caminho!</h2>
+    <p class="consultar-msg">
+      Digite o código do seu pedido para acompanhar o status da entrega.
+    </p>
+
+    <form onsubmit="event.preventDefault(); consultarTicket();" class="consultar-form">
+      <input id="ticketConsulta" type="text"
+             placeholder="EAC-XK7B"
+             autocomplete="off"
+             style="text-transform:uppercase;">
+      <button type="submit" class="destaque">Consultar</button>
+    </form>
+
+    <div id="resultado-consulta"></div>
+  </section>
+
+</main>
+
+<footer class="eac-rodape">
+  Feito com <span>&#10084;</span> pela equipe do <strong>EAC Santo Antônio</strong>
+</footer>
+
+<script src="consultar.js"></script>
+</body>
+</html>

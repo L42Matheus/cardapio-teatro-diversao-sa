@@ -124,6 +124,98 @@ h2 {
   padding-left: 10px;
 }
 
+/* ---------------- Topo da loja (título + botão consultar) ---------------- */
+
+.topo-loja {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.topo-loja h2 {
+  border-left: 4px solid var(--amarelo);
+  padding-left: 10px;
+}
+.botao-link {
+  display: inline-block;
+  text-decoration: none;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+.botao-link.secundario {
+  color: var(--azul);
+  border: 1.5px solid var(--azul);
+  background: transparent;
+}
+.botao-link.secundario:hover {
+  background: rgba(30, 90, 168, 0.08);
+}
+
+/* ---------------- Página de consulta ---------------- */
+
+.consultar-main {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 32px 20px 60px;
+}
+.consultar-card {
+  background: var(--branco);
+  border-radius: var(--raio);
+  padding: 30px 24px;
+  box-shadow: var(--sombra);
+  border: 1px solid var(--borda);
+  text-align: center;
+}
+.consultar-logo {
+  width: 200px;
+  max-width: 60%;
+  height: auto;
+  margin: 0 auto 8px;
+  display: block;
+}
+.frase-caminho {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 1.6rem;
+  color: var(--azul-esc);
+  margin: 8px 0 4px;
+  border: none;
+  padding: 0;
+}
+.consultar-msg {
+  color: var(--texto-fraco);
+  font-size: 0.95rem;
+  margin: 4px 0 20px;
+}
+.consultar-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.consultar-form input {
+  flex: 1 1 220px;
+  padding: 12px 14px;
+  font-size: 1.05rem;
+  text-align: center;
+  letter-spacing: 2px;
+  font-weight: 600;
+}
+.consultar-form button {
+  flex: 0 0 auto;
+  margin-top: 0;
+  padding: 12px 20px;
+  font-size: 1rem;
+}
+#resultado-consulta {
+  margin-top: 16px;
+  text-align: left;
+}
+
 /* ---------------- Abas de categoria ---------------- */
 
 .abas {

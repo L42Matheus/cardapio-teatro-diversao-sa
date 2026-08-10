@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500">
+  <!-- Raios coloridos ao redor da cruz -->
+  <g stroke-linecap="round" stroke-width="8" fill="none">
+    <line x1="200" y1="10"  x2="200" y2="46"  stroke="#f5b301"/>
+    <line x1="150" y1="20"  x2="164" y2="52"  stroke="#2e7d32"/>
+    <line x1="250" y1="20"  x2="236" y2="52"  stroke="#1e5aa8"/>
+    <line x1="105" y1="45"  x2="130" y2="70"  stroke="#e53935"/>
+    <line x1="295" y1="45"  x2="270" y2="70"  stroke="#cccccc"/>
+    <line x1="70"  y1="90"  x2="105" y2="105" stroke="#2e7d32"/>
+    <line x1="330" y1="90"  x2="295" y2="105" stroke="#e53935"/>
+    <line x1="55"  y1="140" x2="90"  y2="140" stroke="#1e5aa8"/>
+    <line x1="345" y1="140" x2="310" y2="140" stroke="#cccccc"/>
+    <line x1="60"  y1="190" x2="90"  y2="180" stroke="#e53935"/>
+    <line x1="340" y1="190" x2="310" y2="180" stroke="#2e7d32"/>
+  </g>
+
+  <!-- Cruz dourada -->
+  <g fill="#f5b301" stroke="#c98f00" stroke-width="3">
+    <rect x="180" y="60"  width="40" height="180" rx="3"/>
+    <rect x="140" y="110" width="120" height="40"  rx="3"/>
+  </g>
+
+  <!-- Silhueta de Jesus com braços abertos -->
+  <g fill="#111">
+    <circle cx="200" cy="185" r="18"/>
+    <path d="M170 205
+             Q 200 200 230 205
+             L 250 240
+             Q 260 250 250 258
+             Q 245 260 240 254
+             L 228 244
+             L 224 320
+             L 176 320
+             L 172 244
+             L 160 254
+             Q 155 260 150 258
+             Q 140 250 150 240 z"/>
+    <!-- coração branco -->
+  </g>
+  <path d="M200 245
+           c -3 -6 -12 -6 -12 2
+           c 0 6 12 12 12 12
+           c 0 0 12 -6 12 -12
+           c 0 -8 -9 -8 -12 -2 z"
+        fill="#ffffff"/>
+
+  <!-- Silhuetas de crianças -->
+  <g fill="#111">
+    <!-- criança 1 (esquerda) -->
+    <circle cx="115" cy="280" r="12"/>
+    <path d="M100 292 Q 115 288 130 292 L 132 335 L 98 335 z"/>
+    <!-- criança 2 -->
+    <circle cx="150" cy="295" r="11"/>
+    <path d="M137 305 Q 150 302 163 305 L 165 340 L 135 340 z"/>
+    <!-- criança 3 (central baixa) -->
+    <circle cx="200" cy="310" r="13"/>
+    <path d="M184 322 Q 200 318 216 322 L 218 350 L 182 350 z"/>
+    <!-- criança 4 -->
+    <circle cx="250" cy="295" r="11"/>
+    <path d="M237 305 Q 250 302 263 305 L 265 340 L 235 340 z"/>
+    <!-- criança 5 -->
+    <circle cx="285" cy="280" r="12"/>
+    <path d="M270 292 Q 285 288 300 292 L 302 335 L 268 335 z"/>
+  </g>
+
+  <!-- Texto EAC -->
+  <text x="200" y="430" text-anchor="middle"
+        font-family="Impact, 'Arial Black', sans-serif"
+        font-size="90" font-weight="900" fill="#111"
+        letter-spacing="4">EAC</text>
+
+  <!-- Subtítulo -->
+  <text x="200" y="465" text-anchor="middle"
+        font-family="sans-serif" font-size="14"
+        font-weight="600" fill="#111"
+        letter-spacing="2">PARÓQUIA DE SANTO ANTÔNIO</text>
+</svg>
