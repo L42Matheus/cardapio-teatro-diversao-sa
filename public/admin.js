@@ -1,6 +1,7 @@
 let categoriasCache = [];
 let pedidosCache = [];
-let minhaEquipe = localStorage.getItem('minhaEquipe') || '';
+let pedidosPausados = false;
+let sessao = null; // { token, usuario, nome, papel }
 
 const RESERVA_TTL_MS = 10 * 60 * 1000;
 
@@ -29,28 +30,209 @@ function reservaAtiva(p) {
   return (Date.now() - new Date(p.claimedAt).getTime()) < RESERVA_TTL_MS;
 }
 
-// ---------- Escolha da equipe ----------
-function definirEquipe(sugestao) {
-  const atual = minhaEquipe || sugestao || '';
-  const resposta = prompt(
-    'Qual equipe está usando este painel?\n\nSugestões: Equipe 1, Equipe 2, Anjos, Servos...',
-    atual
-  );
-  if (resposta && resposta.trim()) {
-    minhaEquipe = resposta.trim();
-    localStorage.setItem('minhaEquipe', minhaEquipe);
-    atualizarBadgeEquipe();
-    return true;
-  }
-  return false;
+// ---------- Sessão / autenticação ----------
+function authHeader() {
+  return sessao ? { Authorization: `Bearer ${sessao.token}` } : {};
 }
 
-function atualizarBadgeEquipe() {
-  const el = document.getElementById('badge-equipe');
-  if (!el) return;
-  el.innerHTML = minhaEquipe
-    ? `Equipe atual: <strong>${minhaEquipe}</strong> <a href="#" onclick="event.preventDefault(); definirEquipe();" style="margin-left:8px; font-size:0.8rem;">trocar</a>`
-    : `<a href="#" onclick="event.preventDefault(); definirEquipe();">Definir minha equipe</a>`;
+async function apiAdmin(caminho, opts = {}) {
+  const res = await fetch(`/api/admin${caminho}`, {
+    ...opts,
+    headers: { ...(opts.headers || {}), ...authHeader() }
+  });
+  if (res.status === 401) {
+    alert('Sessão expirada. Faça login novamente.');
+    sair();
+    throw new Error('SESSAO_EXPIRADA');
+  }
+  return res;
+}
+
+async function fazerLogin(ev) {
+  ev.preventDefault();
+  const usuario = document.getElementById('login-usuario').value.trim();
+  const senha = document.getElementById('login-senha').value;
+  const erroEl = document.getElementById('login-erro');
+  erroEl.classList.add('oculto');
+
+  const res = await fetch('/api/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ usuario, senha })
+  });
+  const dados = await res.json();
+
+  if (!res.ok) {
+    erroEl.textContent = dados.erro || 'Erro ao entrar.';
+    erroEl.classList.remove('oculto');
+    return;
+  }
+
+  sessao = dados;
+  localStorage.setItem('sessaoAdmin', JSON.stringify(sessao));
+  await mostrarPainel();
+}
+
+function sair() {
+  if (sessao) {
+    fetch('/api/admin/logout', { method: 'POST', headers: authHeader() }).catch(() => {});
+  }
+  localStorage.removeItem('sessaoAdmin');
+  sessao = null;
+  mostrarLogin();
+}
+
+function mostrarLogin() {
+  document.getElementById('tela-login').classList.remove('oculto');
+  document.getElementById('painel-admin').classList.add('oculto');
+}
+
+async function mostrarPainel() {
+  document.getElementById('tela-login').classList.add('oculto');
+  document.getElementById('painel-admin').classList.remove('oculto');
+
+  const ehAdmin = sessao.papel === 'admin';
+  document.getElementById('badge-equipe').innerHTML =
+    `Logado como <strong>${sessao.nome}</strong> (${ehAdmin ? 'admin' : 'equipe'}) ` +
+    `<a href="#" onclick="event.preventDefault(); sair();" style="margin-left:8px; font-size:0.8rem;">sair</a>`;
+  document.getElementById('botao-panico').classList.toggle('oculto', !ehAdmin);
+  document.getElementById('secao-equipes').classList.toggle('oculto', !ehAdmin);
+  document.getElementById('secao-estoque').classList.toggle('oculto', !ehAdmin);
+
+  await carregarCategorias();
+  await carregarPedidos();
+  setInterval(carregarPedidos, 5000);
+
+  if (ehAdmin) {
+    await carregarStatusPanico();
+    await carregarEquipes();
+    await carregarEstoque();
+    setInterval(carregarStatusPanico, 5000);
+  }
+
+  document.getElementById('filtro-categoria-pendentes').addEventListener('change', renderPendentes);
+  document.getElementById('filtro-busca-pendentes').addEventListener('input', renderPendentes);
+  document.getElementById('filtro-busca-entregues').addEventListener('input', renderEntregues);
+}
+
+// ---------- Botão do pânico (somente admin) ----------
+async function carregarStatusPanico() {
+  const res = await apiAdmin('/status');
+  const dados = await res.json();
+  pedidosPausados = !!dados.pausado;
+  atualizarBotaoPanico();
+}
+
+function atualizarBotaoPanico() {
+  const botao = document.getElementById('botao-panico');
+  const aviso = document.getElementById('aviso-panico');
+  botao.textContent = pedidosPausados ? '✅ Retomar pedidos' : '🚨 Botão do Pânico';
+  botao.classList.toggle('ativo', pedidosPausados);
+  aviso.classList.toggle('oculto', !pedidosPausados);
+}
+
+async function alternarPanico() {
+  const mensagem = pedidosPausados
+    ? 'Retomar os pedidos no site principal?'
+    : 'Isso vai PAUSAR IMEDIATAMENTE os pedidos no site principal. Confirmar?';
+  if (!confirm(mensagem)) return;
+
+  const res = await apiAdmin('/panico', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ativar: !pedidosPausados })
+  });
+  const dados = await res.json();
+  pedidosPausados = !!dados.pausado;
+  atualizarBotaoPanico();
+}
+
+// ---------- Estoque (somente admin) ----------
+async function carregarEstoque() {
+  const res = await apiAdmin('/produtos');
+  const lista = await res.json();
+  const corpo = document.getElementById('corpo-estoque');
+  corpo.innerHTML = '';
+
+  lista.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${p.nome}</td>
+      <td>${nomeCategoria(p.categoria)}</td>
+      <td><input type="number" min="0" step="1" value="${p.estoque}" id="estoque-input-${p.id}" style="width:80px;"></td>
+      <td><button class="secundario" onclick="salvarEstoque(${p.id})">Salvar</button></td>
+    `;
+    corpo.appendChild(tr);
+  });
+}
+
+async function salvarEstoque(produtoId) {
+  const input = document.getElementById(`estoque-input-${produtoId}`);
+  const estoque = input.value;
+
+  const res = await apiAdmin(`/produtos/${produtoId}/estoque`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ estoque })
+  });
+  const dados = await res.json();
+  if (!res.ok) { alert(dados.erro || 'Erro ao salvar estoque.'); return; }
+  input.value = dados.estoque;
+}
+
+// ---------- Equipes (somente admin) ----------
+async function carregarEquipes() {
+  const res = await apiAdmin('/usuarios');
+  const lista = await res.json();
+  const corpo = document.getElementById('corpo-equipes');
+  corpo.innerHTML = '';
+
+  lista.forEach(u => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${u.nome}</td>
+      <td>${u.usuario}</td>
+      <td>${u.papel === 'admin' ? 'Admin' : 'Equipe'}</td>
+      <td>${u.papel === 'admin' ? '' : `<button class="secundario" onclick="excluirEquipe(${u.id})">Excluir</button>`}</td>
+    `;
+    corpo.appendChild(tr);
+  });
+}
+
+async function criarEquipe(ev) {
+  ev.preventDefault();
+  const nome = document.getElementById('nova-equipe-nome').value.trim();
+  const usuario = document.getElementById('nova-equipe-usuario').value.trim();
+  const senha = document.getElementById('nova-equipe-senha').value;
+  const erroEl = document.getElementById('equipe-erro');
+  erroEl.classList.add('oculto');
+
+  const res = await apiAdmin('/usuarios', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nome, usuario, senha })
+  });
+  const dados = await res.json();
+
+  if (!res.ok) {
+    erroEl.textContent = dados.erro || 'Erro ao criar equipe.';
+    erroEl.classList.remove('oculto');
+    return;
+  }
+
+  document.getElementById('form-nova-equipe').reset();
+  carregarEquipes();
+}
+
+async function excluirEquipe(id) {
+  if (!confirm('Remover esta equipe? Ela não vai mais conseguir entrar no painel.')) return;
+  const res = await apiAdmin(`/usuarios/${id}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const dados = await res.json();
+    alert(dados.erro || 'Erro ao remover.');
+    return;
+  }
+  carregarEquipes();
 }
 
 // ---------- API ----------
@@ -109,7 +291,7 @@ function filtroTexto(p, termo) {
 
 function estadoReserva(p) {
   if (!p.claimedBy || !reservaAtiva(p)) return 'livre';
-  if (p.claimedBy === minhaEquipe) return 'minha';
+  if (p.claimedBy === sessao.nome) return 'minha';
   return 'outra';
 }
 
@@ -224,7 +406,7 @@ function renderEntregues() {
 }
 
 async function carregarPedidos() {
-  const res = await fetch('/api/admin/pedidos');
+  const res = await apiAdmin('/pedidos');
   pedidosCache = await res.json();
   renderResumo(pedidosCache);
   renderPendentes();
@@ -232,35 +414,19 @@ async function carregarPedidos() {
 }
 
 // ---------- Ações ----------
-function garantirEquipe() {
-  if (!minhaEquipe) {
-    if (!definirEquipe()) {
-      alert('É preciso definir sua equipe antes de agir nos pedidos.');
-      return false;
-    }
-  }
-  return true;
-}
-
 async function pegar(pedidoId) {
-  if (!garantirEquipe()) return;
-  const res = await fetch(`/api/admin/pedidos/${pedidoId}/pegar`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ equipe: minhaEquipe })
-  });
+  const res = await apiAdmin(`/pedidos/${pedidoId}/pegar`, { method: 'POST' });
   const dados = await res.json();
   if (!res.ok) { alert(dados.erro || 'Erro ao pegar.'); carregarPedidos(); return; }
   carregarPedidos();
 }
 
 async function liberar(pedidoId, forcado) {
-  if (!garantirEquipe()) return;
   if (forcado && !confirm('Confirmar liberação forçada? Só faça isso se a outra equipe realmente desistiu.')) return;
-  const res = await fetch(`/api/admin/pedidos/${pedidoId}/liberar`, {
+  const res = await apiAdmin(`/pedidos/${pedidoId}/liberar`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ equipe: minhaEquipe, forcado })
+    body: JSON.stringify({ forcado })
   });
   const dados = await res.json();
   if (!res.ok) { alert(dados.erro || 'Erro ao liberar.'); carregarPedidos(); return; }
@@ -268,12 +434,7 @@ async function liberar(pedidoId, forcado) {
 }
 
 async function entregar(pedidoId) {
-  if (!garantirEquipe()) return;
-  const res = await fetch(`/api/admin/pedidos/${pedidoId}/entregar`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ equipe: minhaEquipe })
-  });
+  const res = await apiAdmin(`/pedidos/${pedidoId}/entregar`, { method: 'POST' });
   const dados = await res.json();
   if (!res.ok) { alert(dados.erro || 'Erro ao marcar como entregue.'); carregarPedidos(); return; }
   carregarPedidos();
@@ -281,17 +442,22 @@ async function entregar(pedidoId) {
 
 // ---------- Boot ----------
 async function iniciar() {
-  atualizarBadgeEquipe();
-  if (!minhaEquipe) definirEquipe();
+  const salva = localStorage.getItem('sessaoAdmin');
+  if (!salva) {
+    mostrarLogin();
+    return;
+  }
 
-  await carregarCategorias();
-  await carregarPedidos();
+  sessao = JSON.parse(salva);
+  const res = await fetch('/api/admin/me', { headers: authHeader() });
+  if (!res.ok) {
+    localStorage.removeItem('sessaoAdmin');
+    sessao = null;
+    mostrarLogin();
+    return;
+  }
 
-  document.getElementById('filtro-categoria-pendentes').addEventListener('change', renderPendentes);
-  document.getElementById('filtro-busca-pendentes').addEventListener('input', renderPendentes);
-  document.getElementById('filtro-busca-entregues').addEventListener('input', renderEntregues);
-
-  setInterval(carregarPedidos, 5000);
+  await mostrarPainel();
 }
 
 iniciar();

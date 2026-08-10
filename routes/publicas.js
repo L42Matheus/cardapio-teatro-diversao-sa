@@ -17,9 +17,9 @@ router.get('/categorias', (req, res) => {
   res.json(db.listarCategorias());
 });
 
-// GET /api/estoque -> quantas vagas ainda restam no total (limite X geral)
-router.get('/estoque', (req, res) => {
-  res.json(db.estoqueDisponivel());
+// GET /api/status -> se os pedidos estao pausados (botao do panico do admin)
+router.get('/status', (req, res) => {
+  res.json(db.statusPedidos());
 });
 
 // POST /api/pedidos -> cria um novo pedido e gera a cobranca Pix
@@ -40,8 +40,11 @@ router.post('/pedidos', (req, res) => {
       pix: cobranca
     });
   } catch (err) {
-    if (err.message === 'ESTOQUE_ESGOTADO') {
-      return res.status(409).json({ erro: 'Todas as vagas de compra deste evento ja foram utilizadas.' });
+    if (err.message === 'PEDIDOS_PAUSADOS') {
+      return res.status(503).json({ erro: 'Os pedidos estao pausados no momento. Tente novamente em instantes.' });
+    }
+    if (err.message === 'PRODUTO_SEM_ESTOQUE') {
+      return res.status(409).json({ erro: 'Este produto esta esgotado.' });
     }
     if (err.message === 'PRODUTO_INVALIDO') {
       return res.status(400).json({ erro: 'Produto invalido ou indisponivel.' });

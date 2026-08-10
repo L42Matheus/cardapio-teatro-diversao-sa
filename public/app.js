@@ -5,13 +5,22 @@ let intervaloConsulta = null;
 let categorias = [];
 let produtos = [];
 let categoriaAtiva = 'todos';
+let pedidosPausados = false;
 
-// ---------- Estoque geral ----------
-async function carregarEstoque() {
-  const res = await fetch('/api/estoque');
+// ---------- Status (botão do pânico) ----------
+async function carregarStatus() {
+  const res = await fetch('/api/status');
   const dados = await res.json();
-  document.getElementById('estoque-info').textContent =
-    `Vagas disponíveis: ${dados.disponiveis} de ${dados.limiteTotal}`;
+  pedidosPausados = !!dados.pausado;
+
+  const info = document.getElementById('estoque-info');
+  info.textContent = pedidosPausados
+    ? '⏸️ Pedidos pausados no momento. Volte a tentar em instantes.'
+    : '';
+
+  document.querySelectorAll('#lista-produtos button.destaque').forEach(btn => {
+    btn.disabled = pedidosPausados;
+  });
 }
 
 // ---------- Abas de categoria ----------
@@ -78,8 +87,9 @@ function renderizarProdutos() {
   }
 
   filtrados.forEach(p => {
+    const esgotado = Number(p.estoque) <= 0;
     const div = document.createElement('div');
-    div.className = 'produto-card';
+    div.className = `produto-card${esgotado ? ' esgotado' : ''}`;
     div.innerHTML = `
       <div class="imagem">
         <img src="${p.foto}" alt="${p.nome}" onerror="this.style.opacity=0.2">
@@ -88,7 +98,8 @@ function renderizarProdutos() {
       <h3>${p.nome}</h3>
       <p class="descricao">${p.descricao || ''}</p>
       <div class="preco">R$ ${p.preco.toFixed(2).replace('.', ',')}</div>
-      <button class="destaque" onclick="abrirFormulario(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">Enviar este</button>
+      <p class="estoque-info${esgotado ? ' zerado' : ''}">${esgotado ? 'Esgotado' : `${p.estoque} disponíveis`}</p>
+      <button class="destaque" ${(pedidosPausados || esgotado) ? 'disabled' : ''} onclick="abrirFormulario(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">${esgotado ? 'Esgotado' : 'Enviar este'}</button>
     `;
     container.appendChild(div);
   });
@@ -96,6 +107,10 @@ function renderizarProdutos() {
 
 // ---------- Formulário ----------
 function abrirFormulario(id, nome) {
+  if (pedidosPausados) {
+    alert('Os pedidos estão pausados no momento. Tente novamente em instantes.');
+    return;
+  }
   produtoSelecionado = id;
   document.getElementById('form-produto-nome').textContent = nome;
   document.getElementById('secao-formulario').classList.remove('oculto');
@@ -159,7 +174,6 @@ async function enviarPedido() {
   });
 
   iniciarPollingStatus(dados.ticket);
-  carregarEstoque();
 }
 
 function iniciarPollingStatus(ticket) {
@@ -196,5 +210,7 @@ function legendaStatus(status) {
 (async () => {
   await carregarCategorias();
   await carregarProdutos();
-  await carregarEstoque();
+  await carregarStatus();
+  setInterval(carregarStatus, 5000);
+  setInterval(carregarProdutos, 5000);
 })();

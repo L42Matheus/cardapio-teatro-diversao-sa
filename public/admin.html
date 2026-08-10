@@ -17,6 +17,7 @@
       <p>EAC — Paróquia de Santo Antônio · Gestão dos pedidos</p>
       <p id="badge-equipe" style="margin:4px 0 0; font-size:0.85rem;"></p>
     </div>
+    <button id="botao-panico" class="botao-panico oculto" onclick="alternarPanico()">🚨 Botão do Pânico</button>
     <nav><a href="/">&larr; Ver loja</a></nav>
   </div>
 </header>
@@ -24,80 +25,159 @@
 
 <main style="max-width: 1100px;">
 
-  <section>
-    <h2>Resumo</h2>
-    <div class="resumo" id="resumo"></div>
+  <section id="tela-login" class="card" style="max-width:360px; margin:40px auto;">
+    <h2 style="margin-top:0;">Entrar no painel</h2>
+    <form id="form-login" onsubmit="fazerLogin(event)">
+      <label>Usuário
+        <input id="login-usuario" type="text" autocomplete="username" required>
+      </label>
+      <label>Senha
+        <input id="login-senha" type="password" autocomplete="current-password" required>
+      </label>
+      <div id="login-erro" class="aviso erro oculto"></div>
+      <button class="destaque" type="submit" style="margin-top:12px; width:100%;">Entrar</button>
+    </form>
   </section>
 
-  <section class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-      <h2 style="margin:0;">🚚 A entregar <span id="contador-pendentes" style="color:var(--texto-fraco); font-weight:normal; font-size:0.85rem;"></span></h2>
-      <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
-        <label style="margin:0;">
-          Categoria
-          <select id="filtro-categoria-pendentes" class="small">
-            <option value="todos">Todas</option>
-          </select>
-        </label>
+  <div id="painel-admin" class="oculto">
+
+    <section id="aviso-panico" class="card oculto" style="border-left: 4px solid var(--vermelho); background: #fdecea;">
+      <strong>🚨 Pedidos pausados!</strong> Ninguém consegue enviar novos pedidos no site principal enquanto o botão do pânico estiver ativo.
+    </section>
+
+    <section>
+      <h2>Resumo</h2>
+      <div class="resumo" id="resumo"></div>
+    </section>
+
+    <section class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+        <h2 style="margin:0;">🚚 A entregar <span id="contador-pendentes" style="color:var(--texto-fraco); font-weight:normal; font-size:0.85rem;"></span></h2>
+        <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+          <label style="margin:0;">
+            Categoria
+            <select id="filtro-categoria-pendentes" class="small">
+              <option value="todos">Todas</option>
+            </select>
+          </label>
+          <label style="margin:0;">
+            Buscar
+            <input id="filtro-busca-pendentes" type="text" placeholder="Nome ou equipe" style="width:200px;">
+          </label>
+          <button class="secundario" onclick="carregarPedidos()">Atualizar</button>
+        </div>
+      </div>
+      <p style="color:var(--texto-fraco); font-size:0.85rem; margin:8px 0 0;">
+        Ordem de chegada — pedido mais antigo primeiro. Clique em <strong>Entregue</strong> quando a entrega for feita.
+      </p>
+
+      <div class="tabela-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ticket</th>
+              <th>Hora</th>
+              <th>Categoria</th>
+              <th>Produto</th>
+              <th>Destinatário</th>
+              <th>Equipe</th>
+              <th>Comprador</th>
+              <th>Valor</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="corpo-pendentes"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+        <h2 style="margin:0;">✅ Entregues <span id="contador-entregues" style="color:var(--texto-fraco); font-weight:normal; font-size:0.85rem;"></span></h2>
         <label style="margin:0;">
           Buscar
-          <input id="filtro-busca-pendentes" type="text" placeholder="Nome ou equipe" style="width:200px;">
+          <input id="filtro-busca-entregues" type="text" placeholder="Nome ou equipe" style="width:200px;">
         </label>
-        <button class="secundario" onclick="carregarPedidos()">Atualizar</button>
       </div>
-    </div>
-    <p style="color:var(--texto-fraco); font-size:0.85rem; margin:8px 0 0;">
-      Ordem de chegada — pedido mais antigo primeiro. Clique em <strong>Entregue</strong> quando a entrega for feita.
-    </p>
 
-    <div class="tabela-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Ticket</th>
-            <th>Hora</th>
-            <th>Categoria</th>
-            <th>Produto</th>
-            <th>Destinatário</th>
-            <th>Equipe</th>
-            <th>Comprador</th>
-            <th>Valor</th>
-            <th>Ação</th>
-          </tr>
-        </thead>
-        <tbody id="corpo-pendentes"></tbody>
-      </table>
-    </div>
-  </section>
+      <div class="tabela-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ticket</th>
+              <th>Entregue às</th>
+              <th>Por</th>
+              <th>Categoria</th>
+              <th>Produto</th>
+              <th>Destinatário</th>
+              <th>Equipe</th>
+              <th>Comprador</th>
+              <th>Valor</th>
+            </tr>
+          </thead>
+          <tbody id="corpo-entregues"></tbody>
+        </table>
+      </div>
+    </section>
 
-  <section class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-      <h2 style="margin:0;">✅ Entregues <span id="contador-entregues" style="color:var(--texto-fraco); font-weight:normal; font-size:0.85rem;"></span></h2>
-      <label style="margin:0;">
-        Buscar
-        <input id="filtro-busca-entregues" type="text" placeholder="Nome ou equipe" style="width:200px;">
-      </label>
-    </div>
+    <section id="secao-estoque" class="card oculto">
+      <h2 style="margin-top:0;">📦 Estoque dos produtos</h2>
+      <p style="color:var(--texto-fraco); font-size:0.85rem;">
+        Só o admin pode editar o estoque. Quando chegar a 0, o produto aparece como "Esgotado" no site e não pode mais ser comprado.
+      </p>
 
-    <div class="tabela-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Ticket</th>
-            <th>Entregue às</th>
-            <th>Por</th>
-            <th>Categoria</th>
-            <th>Produto</th>
-            <th>Destinatário</th>
-            <th>Equipe</th>
-            <th>Comprador</th>
-            <th>Valor</th>
-          </tr>
-        </thead>
-        <tbody id="corpo-entregues"></tbody>
-      </table>
-    </div>
-  </section>
+      <div class="tabela-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Categoria</th>
+              <th>Estoque</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="corpo-estoque"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="secao-equipes" class="card oculto">
+      <h2 style="margin-top:0;">👥 Equipes com acesso ao painel</h2>
+      <p style="color:var(--texto-fraco); font-size:0.85rem;">
+        Equipes conseguem gerenciar pedidos (pegar, liberar, marcar como entregue), mas não podem criar outras equipes nem usar o botão do pânico.
+      </p>
+
+      <div class="tabela-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Usuário</th>
+              <th>Papel</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="corpo-equipes"></tbody>
+        </table>
+      </div>
+
+      <h3>Criar nova equipe</h3>
+      <form id="form-nova-equipe" onsubmit="criarEquipe(event)" style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+        <label style="margin:0;">Nome da equipe
+          <input id="nova-equipe-nome" type="text" placeholder="Ex: Equipe Azul" required>
+        </label>
+        <label style="margin:0;">Usuário (login)
+          <input id="nova-equipe-usuario" type="text" placeholder="Ex: equipeazul" required>
+        </label>
+        <label style="margin:0;">Senha
+          <input id="nova-equipe-senha" type="text" placeholder="Senha da equipe" required>
+        </label>
+        <button class="destaque" type="submit">Criar equipe</button>
+      </form>
+      <div id="equipe-erro" class="aviso erro oculto" style="margin-top:8px;"></div>
+    </section>
+
+  </div>
 
 </main>
 

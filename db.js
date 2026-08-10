@@ -7,10 +7,13 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const DB_PATH = path.join(__dirname, 'data', 'db.json');
 
-const LIMITE_TOTAL_PEDIDOS = 100; // <-- ajuste aqui o X (limite geral de compras do evento)
+function hashSenha(senha) {
+  return crypto.createHash('sha256').update(String(senha)).digest('hex');
+}
 
 // Categorias oferecidas na loja do EAC. A ordem aqui define a ordem das abas
 // que aparecem na tela de vendas.
@@ -26,38 +29,47 @@ const CATEGORIAS = [
 function estadoInicial() {
   return {
     config: {
-      limiteTotal: LIMITE_TOTAL_PEDIDOS
+      pedidosPausados: false
     },
+    // Usuario admin fixo (usuario/senha: neymar). Tem acesso total, incluindo
+    // criar equipes e o botao do panico. Equipes criadas pelo admin entram
+    // aqui com papel 'equipe'.
+    usuarios: [
+      { id: 1, usuario: 'neymar', senhaHash: hashSenha('neymar'), papel: 'admin', nome: 'Admin' }
+    ],
+    proximoUsuarioId: 2,
+    // Estoque por produto (editavel apenas pelo admin, no painel). Ajuste os
+    // valores iniciais abaixo conforme a quantidade real disponivel.
     produtos: [
       // ----- Trotes (carro-chefe — nomes fictícios, ajustar com a equipe) -----
       { id: 7,  categoria: 'trote',     nome: 'Trote do Anjo da Guarda', preco: 4.00, foto: '/uploads/produtos/trote-anjo.svg',
-        descricao: 'Um "anjinho" surpresa entrega uma mensagem carinhosa.', ativo: true },
+        descricao: 'Um "anjinho" surpresa entrega uma mensagem carinhosa.', ativo: true, estoque: 30 },
       { id: 8,  categoria: 'trote',     nome: 'Serenata do Coração',     preco: 5.00, foto: '/uploads/produtos/trote-serenata.svg',
-        descricao: 'A pessoa recebe uma canção ao vivo dos servos.', ativo: true },
+        descricao: 'A pessoa recebe uma canção ao vivo dos servos.', ativo: true, estoque: 30 },
       { id: 9,  categoria: 'trote',     nome: 'Missão Fraterna',         preco: 3.00, foto: '/uploads/produtos/trote-missao.svg',
-        descricao: 'Um bilhete anônimo com uma oração é entregue à pessoa.', ativo: true },
+        descricao: 'Um bilhete anônimo com uma oração é entregue à pessoa.', ativo: true, estoque: 30 },
       { id: 10, categoria: 'trote',     nome: 'Abraço em Cristo',        preco: 4.00, foto: '/uploads/produtos/trote-abraco.svg',
-        descricao: 'Um grupo de servos vai até a pessoa entregar um abraço coletivo.', ativo: true },
+        descricao: 'Um grupo de servos vai até a pessoa entregar um abraço coletivo.', ativo: true, estoque: 30 },
       { id: 11, categoria: 'trote',     nome: 'Dança da Alegria',        preco: 6.00, foto: '/uploads/produtos/trote-danca.svg',
-        descricao: 'Mini apresentação de dança feita para alegrar o encontrista.', ativo: true },
+        descricao: 'Mini apresentação de dança feita para alegrar o encontrista.', ativo: true, estoque: 30 },
 
       // ----- Rosas -----
       { id: 1,  categoria: 'rosa',      nome: 'Rosa Única',           preco: 5.00, foto: '/uploads/produtos/rosa.svg',
-        descricao: 'Uma rosa vermelha entregue com carinho para quem você escolher.', ativo: true },
+        descricao: 'Uma rosa vermelha entregue com carinho para quem você escolher.', ativo: true, estoque: 30 },
       { id: 2,  categoria: 'rosa',      nome: 'Buquê de 3 Rosas',     preco: 7.00, foto: '/uploads/produtos/buque.svg',
-        descricao: 'Buquê com três rosas para uma surpresa especial.', ativo: true },
+        descricao: 'Buquê com três rosas para uma surpresa especial.', ativo: true, estoque: 30 },
 
       // ----- Chocolates -----
       { id: 3,  categoria: 'chocolate', nome: 'Chocolate com Rosa',   preco: 7.00, foto: '/uploads/produtos/chocolate.svg',
-        descricao: 'Uma barra de chocolate acompanhada de uma rosa.', ativo: true },
+        descricao: 'Uma barra de chocolate acompanhada de uma rosa.', ativo: true, estoque: 30 },
       { id: 4,  categoria: 'chocolate', nome: 'Chocolate Coração',    preco: 5.00, foto: '/uploads/produtos/chocolate-coracao.svg',
-        descricao: 'Chocolate em formato de coração para adoçar o encontro.', ativo: true },
+        descricao: 'Chocolate em formato de coração para adoçar o encontro.', ativo: true, estoque: 30 },
 
       // ----- Botons -----
       { id: 5,  categoria: 'boton',     nome: 'Boton EAC',            preco: 3.00, foto: '/uploads/produtos/boton.svg',
-        descricao: 'Boton oficial do EAC Santo Antônio.', ativo: true },
+        descricao: 'Boton oficial do EAC Santo Antônio.', ativo: true, estoque: 30 },
       { id: 6,  categoria: 'boton',     nome: 'Kit 3 Botons',         preco: 7.00, foto: '/uploads/produtos/boton-kit.svg',
-        descricao: 'Trio de botons coloridos do EAC.', ativo: true }
+        descricao: 'Trio de botons coloridos do EAC.', ativo: true, estoque: 30 }
     ],
     entregadores: [
       { id: 1, nome: 'Equipe Trote 1' },
@@ -93,21 +105,46 @@ function buscarProduto(id) {
   return dados.produtos.find(p => p.id === Number(id));
 }
 
-// ---- Estoque global (limite X de compras no total) ----
-
-function contarPedidosValidos(dados) {
-  // Pedidos cancelados (ex: pagamento expirou) nao contam contra o limite.
-  return dados.pedidos.filter(p => p.status !== 'cancelado').length;
+// Lista completa (inclui inativos), usada no painel admin pra editar estoque.
+function listarProdutosAdmin() {
+  const dados = carregar();
+  return dados.produtos;
 }
 
-function estoqueDisponivel() {
+function atualizarEstoque(produtoId, novoEstoque) {
   const dados = carregar();
-  const usados = contarPedidosValidos(dados);
-  return {
-    limiteTotal: dados.config.limiteTotal,
-    usados,
-    disponiveis: Math.max(0, dados.config.limiteTotal - usados)
-  };
+  const produto = dados.produtos.find(p => p.id === Number(produtoId));
+  if (!produto) throw new Error('PRODUTO_INVALIDO');
+
+  const valor = Number(novoEstoque);
+  if (!Number.isInteger(valor) || valor < 0) {
+    throw new Error('ESTOQUE_INVALIDO');
+  }
+
+  produto.estoque = valor;
+  salvar(dados);
+  return produto;
+}
+
+// ---- Botão do pânico (pausa imediata de novos pedidos) ----
+
+function statusPedidos() {
+  const dados = carregar();
+  return { pausado: !!dados.config.pedidosPausados };
+}
+
+function pausarPedidos() {
+  const dados = carregar();
+  dados.config.pedidosPausados = true;
+  salvar(dados);
+  return statusPedidos();
+}
+
+function retomarPedidos() {
+  const dados = carregar();
+  dados.config.pedidosPausados = false;
+  salvar(dados);
+  return statusPedidos();
 }
 
 // ---- Pedidos ----
@@ -132,14 +169,16 @@ function gerarCodigoPedido(dados) {
 function criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario, equipeDestinatario }) {
   const dados = carregar();
 
-  const usados = contarPedidosValidos(dados);
-  if (usados >= dados.config.limiteTotal) {
-    throw new Error('ESTOQUE_ESGOTADO');
+  if (dados.config.pedidosPausados) {
+    throw new Error('PEDIDOS_PAUSADOS');
   }
 
   const produto = dados.produtos.find(p => p.id === Number(produtoId) && p.ativo);
   if (!produto) {
     throw new Error('PRODUTO_INVALIDO');
+  }
+  if (produto.estoque <= 0) {
+    throw new Error('PRODUTO_SEM_ESTOQUE');
   }
 
   const id = dados.proximoPedidoId++;
@@ -162,6 +201,7 @@ function criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario, equi
     atualizadoEm: new Date().toISOString()
   };
 
+  produto.estoque -= 1;
   dados.pedidos.push(pedido);
   salvar(dados);
   return pedido;
@@ -289,10 +329,66 @@ function listarCategorias() {
   return CATEGORIAS;
 }
 
+// ---- Usuarios / autenticacao ----
+// Papeis: 'admin' (usuario neymar, fixo) e 'equipe' (criados pelo admin).
+
+function sanitizarUsuario(u) {
+  return { id: u.id, usuario: u.usuario, nome: u.nome, papel: u.papel };
+}
+
+function listarUsuarios() {
+  const dados = carregar();
+  return dados.usuarios.map(sanitizarUsuario);
+}
+
+function autenticarUsuario(usuario, senha) {
+  if (!usuario || !senha) return null;
+  const dados = carregar();
+  const alvo = String(usuario).trim().toLowerCase();
+  const user = dados.usuarios.find(u => u.usuario.toLowerCase() === alvo);
+  if (!user || user.senhaHash !== hashSenha(senha)) return null;
+  return sanitizarUsuario(user);
+}
+
+function criarUsuario({ usuario, senha, nome }) {
+  if (!usuario || !usuario.trim()) throw new Error('USUARIO_OBRIGATORIO');
+  if (!senha || !senha.trim()) throw new Error('SENHA_OBRIGATORIA');
+
+  const dados = carregar();
+  const alvo = usuario.trim().toLowerCase();
+  if (dados.usuarios.some(u => u.usuario.toLowerCase() === alvo)) {
+    throw new Error('USUARIO_JA_EXISTE');
+  }
+
+  const novo = {
+    id: dados.proximoUsuarioId++,
+    usuario: usuario.trim(),
+    senhaHash: hashSenha(senha),
+    papel: 'equipe',
+    nome: (nome && nome.trim()) || usuario.trim()
+  };
+  dados.usuarios.push(novo);
+  salvar(dados);
+  return sanitizarUsuario(novo);
+}
+
+function removerUsuario(id) {
+  const dados = carregar();
+  const user = dados.usuarios.find(u => u.id === Number(id));
+  if (!user) throw new Error('USUARIO_NAO_ENCONTRADO');
+  if (user.papel === 'admin') throw new Error('ADMIN_NAO_REMOVIVEL');
+  dados.usuarios = dados.usuarios.filter(u => u.id !== Number(id));
+  salvar(dados);
+}
+
 module.exports = {
   listarProdutosAtivos,
   buscarProduto,
-  estoqueDisponivel,
+  listarProdutosAdmin,
+  atualizarEstoque,
+  statusPedidos,
+  pausarPedidos,
+  retomarPedidos,
   criarPedido,
   buscarPedido,
   buscarPedidoPorTxid,
@@ -304,5 +400,9 @@ module.exports = {
   liberarPedido,
   marcarEntregue,
   listarEntregadores,
-  listarCategorias
+  listarCategorias,
+  listarUsuarios,
+  autenticarUsuario,
+  criarUsuario,
+  removerUsuario
 };

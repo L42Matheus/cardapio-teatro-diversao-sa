@@ -272,6 +272,23 @@ h2 {
   transform: translateY(-2px);
   box-shadow: var(--sombra-forte);
 }
+.produto-card.esgotado {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+.produto-card.esgotado:hover {
+  transform: none;
+  box-shadow: var(--sombra);
+}
+.produto-card .estoque-info {
+  font-size: 0.78rem;
+  color: var(--texto-fraco);
+  margin: 0 0 6px;
+}
+.produto-card .estoque-info.zerado {
+  color: var(--vermelho);
+  font-weight: 600;
+}
 .produto-card .imagem {
   background: var(--creme-2);
   border-radius: 10px;
@@ -344,6 +361,18 @@ button.destaque {
   color: var(--texto);
 }
 button.destaque:hover:not(:disabled) { background: var(--amarelo-esc); color: var(--branco); }
+
+.botao-panico {
+  background: var(--vermelho);
+  color: var(--branco);
+}
+.botao-panico:hover:not(:disabled) { background: #a72c2c; }
+.botao-panico.ativo {
+  animation: piscar-panico 1s infinite;
+}
+@keyframes piscar-panico {
+  50% { opacity: 0.6; }
+}
 
 /* ---------------- Cartões / formulário ---------------- */
 
