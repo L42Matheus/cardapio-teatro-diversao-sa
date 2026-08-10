@@ -7,25 +7,25 @@
 <link rel="icon" type="image/svg+xml" href="/logo-eac.svg">
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="admin-page">
 
 <header class="eac-header">
   <div class="eac-topo">
     <img class="eac-logo" src="/logo-eac.svg" alt="Logo EAC">
-    <div class="eac-titulo" style="flex:1">
+    <div class="eac-titulo">
       <h1>Painel Admin — Cardápio, Teatro e Diversão SA</h1>
       <p>EAC — Paróquia de Santo Antônio · Gestão dos pedidos</p>
-      <p id="badge-equipe" style="margin:4px 0 0; font-size:0.85rem;"></p>
+      <p id="badge-equipe" class="badge-equipe"></p>
     </div>
     <nav><a href="/">&larr; Ver loja</a></nav>
   </div>
 </header>
 <div class="eac-faixa"></div>
 
-<main style="max-width: 1100px;">
+<main class="admin-main">
 
-  <section id="tela-login" class="card" style="max-width:360px; margin:40px auto;">
-    <h2 style="margin-top:0;">Entrar no painel</h2>
+  <section id="tela-login" class="card login-card">
+    <h2>Entrar no painel</h2>
     <form id="form-login" onsubmit="fazerLogin(event)">
       <label>Usuário
         <input id="login-usuario" type="text" value="teatro" autocomplete="username" required>
@@ -34,14 +34,15 @@
         <input id="login-senha" type="password" autocomplete="current-password" required autofocus>
       </label>
       <div id="login-erro" class="aviso erro oculto"></div>
-      <button class="destaque" type="submit" style="margin-top:12px; width:100%;">Entrar</button>
+      <button class="destaque botao-cheio" type="submit">Entrar</button>
     </form>
   </section>
 
   <div id="painel-admin" class="oculto">
 
     <nav class="abas abas-admin" id="abas-admin">
-      <button type="button" class="aba ativa" data-aba="pendentes">🚚 A entregar <span id="aba-contador-pendentes"></span></button>
+      <button type="button" class="aba ativa" data-aba="todos">📋 Todos <span id="aba-contador-todos"></span></button>
+      <button type="button" class="aba" data-aba="pendentes">🚚 A entregar <span id="aba-contador-pendentes"></span></button>
       <button type="button" class="aba" data-aba="entregues">✅ Entregues <span id="aba-contador-entregues"></span></button>
       <button type="button" class="aba" data-aba="estoque" id="aba-estoque">📦 Estoque</button>
       <button type="button" class="aba" data-aba="resumo">📊 Resumo</button>
@@ -51,23 +52,60 @@
       <div class="resumo" id="resumo"></div>
     </section>
 
-    <section id="tab-pendentes" class="tab-conteudo card">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-        <h2 style="margin:0;">🚚 A entregar <span id="contador-pendentes" style="color:var(--texto-fraco); font-weight:normal; font-size:0.85rem;"></span></h2>
-        <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
-          <label style="margin:0;">
+    <section id="tab-todos" class="tab-conteudo card">
+      <div class="admin-section-head">
+        <h2>📋 Todos os pedidos <span id="contador-todos" class="contador-titulo"></span></h2>
+        <label>
+          Buscar
+          <input id="filtro-busca-todos" type="text" placeholder="Ticket, nome ou equipe">
+        </label>
+      </div>
+
+      <div class="tabela-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ticket</th>
+              <th>Status</th>
+              <th>Hora</th>
+              <th>Categoria</th>
+              <th>Produto</th>
+              <th>Destinatário</th>
+              <th>Equipe</th>
+              <th>Comprador</th>
+              <th>Mensagem</th>
+              <th>Valor</th>
+            </tr>
+          </thead>
+          <tbody id="corpo-todos"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tab-pendentes" class="tab-conteudo card oculto">
+      <div class="admin-section-head">
+        <h2>🚚 A entregar <span id="contador-pendentes" class="contador-titulo"></span></h2>
+        <div class="admin-filtros">
+          <label>
             Categoria
             <select id="filtro-categoria-pendentes" class="small">
               <option value="todos">Todas</option>
             </select>
           </label>
-          <label style="margin:0;">
+          <label>
             Buscar
-            <input id="filtro-busca-pendentes" type="text" placeholder="Nome ou equipe" style="width:200px;">
+            <input id="filtro-busca-pendentes" type="text" placeholder="Nome ou equipe">
           </label>
           <button class="secundario" onclick="carregarPedidos()">Atualizar</button>
         </div>
       </div>
+      <section id="seletor-equipe" class="equipe-operacao oculto">
+        <div>
+          <strong>Equipe de entrega</strong>
+          <span id="equipe-operacao-status">Escolha quem está operando este painel.</span>
+        </div>
+        <div id="botoes-equipe-operacao" class="equipe-botoes"></div>
+      </section>
       <p style="color:var(--texto-fraco); font-size:0.85rem; margin:8px 0 0;">
         Ordem de chegada — pedido mais antigo primeiro. Clique em <strong>Entregue</strong> quando a entrega for feita.
       </p>
@@ -83,6 +121,7 @@
               <th>Destinatário</th>
               <th>Equipe</th>
               <th>Comprador</th>
+              <th>Mensagem</th>
               <th>Valor</th>
               <th>Ação</th>
             </tr>
@@ -93,11 +132,11 @@
     </section>
 
     <section id="tab-entregues" class="tab-conteudo card oculto">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-        <h2 style="margin:0;">✅ Entregues <span id="contador-entregues" style="color:var(--texto-fraco); font-weight:normal; font-size:0.85rem;"></span></h2>
-        <label style="margin:0;">
+      <div class="admin-section-head">
+        <h2>✅ Entregues <span id="contador-entregues" class="contador-titulo"></span></h2>
+        <label>
           Buscar
-          <input id="filtro-busca-entregues" type="text" placeholder="Nome ou equipe" style="width:200px;">
+          <input id="filtro-busca-entregues" type="text" placeholder="Nome ou equipe">
         </label>
       </div>
 
@@ -113,6 +152,7 @@
               <th>Destinatário</th>
               <th>Equipe</th>
               <th>Comprador</th>
+              <th>Mensagem</th>
               <th>Valor</th>
             </tr>
           </thead>
@@ -122,14 +162,14 @@
     </section>
 
     <section id="tab-estoque" class="tab-conteudo card oculto" data-somente-admin="true">
-      <h2 style="margin-top:0;">📦 Estoque dos produtos</h2>
+      <h2>📦 Estoque dos produtos</h2>
       <p style="color:var(--texto-fraco); font-size:0.85rem;">
         Só o admin pode editar o estoque. Quando chegar a 0, o produto aparece como "Esgotado" no site e não pode mais ser comprado.
       </p>
 
       <p style="color:var(--texto-fraco); font-size:0.85rem; margin:6px 0 10px;">
-        <strong>Vendidos</strong>: quantos ja saíram (pagos ou entregues) —
         <strong>Disponíveis</strong>: quantos o site ainda pode vender (edite pra pausar/reabrir) —
+        <strong>Vendidos</strong>: quantos ja saíram (pagos ou entregues) —
         <strong>Total</strong>: soma dos dois.
       </p>
       <div class="tabela-wrap">
@@ -137,8 +177,8 @@
           <thead>
             <tr>
               <th>Produto</th>
-              <th style="text-align:center;">Vendidos</th>
               <th>Disponíveis</th>
+              <th style="text-align:center;">Vendidos</th>
               <th style="text-align:center;">Total</th>
               <th>Ação</th>
             </tr>

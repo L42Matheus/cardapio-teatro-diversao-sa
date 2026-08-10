@@ -222,7 +222,7 @@ function gerarCodigoPedido(dados) {
   return `EAC-${Date.now().toString(36).toUpperCase().slice(-6)}`;
 }
 
-function criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario, equipeDestinatario }) {
+function criarPedidosMultiplos({ produtoId, nomeComprador, contato, destinatarios }) {
   const dados = carregar();
 
   if (dados.config.pedidosPausados) {
@@ -236,31 +236,62 @@ function criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario, equi
   if (produto.estoque <= 0) {
     throw new Error('PRODUTO_SEM_ESTOQUE');
   }
+  if (!Array.isArray(destinatarios) || destinatarios.length === 0) {
+    throw new Error('DESTINATARIOS_INVALIDOS');
+  }
+  if (produto.estoque < destinatarios.length) {
+    throw new Error('PRODUTO_SEM_ESTOQUE');
+  }
 
-  const id = dados.proximoPedidoId++;
   const codigo = gerarCodigoPedido(dados);
-  const pedido = {
-    id,
+  const pixTxid = `TXID-${codigo.replace('EAC-', '')}-${Date.now()}`;
+  const criadoEm = new Date().toISOString();
+
+  const pedidos = destinatarios.map((destinatario, indice) => {
+    const id = dados.proximoPedidoId++;
+    return {
+      id,
+      codigo,
+      itemPedido: indice + 1,
+      totalItensPedido: destinatarios.length,
+      produtoId: produto.id,
+      produtoNome: produto.nome,
+      categoria: produto.categoria || null,
+      valor: produto.preco,
+      valorTotalPedido: produto.preco * destinatarios.length,
+      nomeComprador,
+      contato,
+      nomeDestinatario: destinatario.nomeDestinatario,
+      equipeDestinatario: destinatario.equipeDestinatario || null,
+      anonimo: !!destinatario.anonimo,
+      mensagemEspecial: destinatario.mensagemEspecial || '',
+      status: 'pendente_pagamento', // pendente_pagamento -> pago -> aguardando -> entregue (ou cancelado)
+      pixTxid,
+      entregadorId: null,
+      criadoEm,
+      atualizadoEm: criadoEm
+    };
+  });
+
+  produto.estoque -= pedidos.length;
+  dados.pedidos.push(...pedidos);
+  salvar(dados);
+  return {
     codigo,
-    produtoId: produto.id,
-    produtoNome: produto.nome,
-    categoria: produto.categoria || null,
-    valor: produto.preco,
+    pixTxid,
+    valor: produto.preco * pedidos.length,
+    pedidos
+  };
+}
+
+function criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario, equipeDestinatario }) {
+  const grupo = criarPedidosMultiplos({
+    produtoId,
     nomeComprador,
     contato,
-    nomeDestinatario,
-    equipeDestinatario: equipeDestinatario || null,
-    status: 'pendente_pagamento', // pendente_pagamento -> pago -> aguardando -> entregue (ou cancelado)
-    pixTxid: `TXID-${id}-${Date.now()}`,
-    entregadorId: null,
-    criadoEm: new Date().toISOString(),
-    atualizadoEm: new Date().toISOString()
-  };
-
-  produto.estoque -= 1;
-  dados.pedidos.push(pedido);
-  salvar(dados);
-  return pedido;
+    destinatarios: [{ nomeDestinatario, equipeDestinatario }]
+  });
+  return grupo.pedidos[0];
 }
 
 function buscarPedido(id) {
@@ -280,6 +311,13 @@ function buscarPedidoPorCodigo(codigo) {
   return dados.pedidos.find(p => (p.codigo || '').toUpperCase() === alvo);
 }
 
+function listarPedidosPorCodigo(codigo) {
+  if (!codigo) return [];
+  const alvo = String(codigo).trim().toUpperCase();
+  const dados = carregar();
+  return dados.pedidos.filter(p => (p.codigo || '').toUpperCase() === alvo);
+}
+
 function listarPedidos() {
   const dados = carregar();
   return dados.pedidos;
@@ -287,12 +325,15 @@ function listarPedidos() {
 
 function atualizarStatusPorTxid(txid, novoStatus) {
   const dados = carregar();
-  const pedido = dados.pedidos.find(p => p.pixTxid === txid);
-  if (!pedido) throw new Error('PEDIDO_NAO_ENCONTRADO');
-  pedido.status = novoStatus;
-  pedido.atualizadoEm = new Date().toISOString();
+  const pedidos = dados.pedidos.filter(p => p.pixTxid === txid);
+  if (pedidos.length === 0) throw new Error('PEDIDO_NAO_ENCONTRADO');
+  const atualizadoEm = new Date().toISOString();
+  pedidos.forEach(pedido => {
+    pedido.status = novoStatus;
+    pedido.atualizadoEm = atualizadoEm;
+  });
   salvar(dados);
-  return pedido;
+  return pedidos[0];
 }
 
 function atribuirEntregador(pedidoId, entregadorId) {
@@ -446,9 +487,11 @@ module.exports = {
   pausarPedidos,
   retomarPedidos,
   criarPedido,
+  criarPedidosMultiplos,
   buscarPedido,
   buscarPedidoPorTxid,
   buscarPedidoPorCodigo,
+  listarPedidosPorCodigo,
   listarPedidos,
   atualizarStatusPorTxid,
   atribuirEntregador,

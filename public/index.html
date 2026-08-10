@@ -7,12 +7,12 @@
 <link rel="icon" type="image/svg+xml" href="/logo-eac.svg">
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="loja-page">
 
 <header class="eac-header">
   <div class="eac-topo">
     <img class="eac-logo" src="/logo-eac.svg" alt="Logo EAC">
-    <div class="eac-titulo" style="flex:1">
+    <div class="eac-titulo">
       <h1>Cardápio, Teatro e Diversão SA</h1>
       <p>EAC — Paróquia de Santo Antônio</p>
     </div>
@@ -23,32 +23,59 @@
 
 <main>
 
-  <section>
+  <section id="secao-cardapio">
     <div class="topo-loja">
-      <h2 style="margin:0;">Escolha o que enviar</h2>
+      <h2>Escolha o que enviar</h2>
       <a href="/consultar.html" class="botao-link secundario">Consultar meu pedido</a>
     </div>
     <div class="abas" id="abas-categorias"></div>
     <div class="produtos" id="lista-produtos"></div>
   </section>
 
+  <button id="btn-voltar-pedido" class="voltar-topo voltar-pedido oculto" onclick="voltarAoCardapio()" aria-label="Voltar ao cardápio">&lt; Voltar ao cardápio</button>
+
+  <section id="pedido-resumo" class="pedido-resumo oculto">
+    <div class="pedido-resumo-img">
+      <img id="pedido-resumo-foto" src="" alt="">
+    </div>
+    <div class="pedido-resumo-info">
+      <div id="pedido-resumo-categoria" class="pedido-resumo-categoria"></div>
+      <h2 id="pedido-resumo-nome"></h2>
+      <p>Valor: <strong id="pedido-resumo-valor"></strong></p>
+    </div>
+  </section>
+
   <section id="secao-formulario" class="card oculto">
-    <h2>Enviar <span id="form-produto-nome"></span></h2>
+    <div class="etapa-head">
+      <h2>1. Quem está enviando?</h2>
+      <label class="check-opcao check-anonimo" title="Enviar anônimo" aria-label="Enviar anônimo">
+        <span aria-hidden="true">🕵️</span>
+        <input id="anonimo" type="checkbox">
+      </label>
+    </div>
     <label>Seu nome
-      <input id="nomeComprador" type="text" placeholder="Como você quer se identificar">
+      <input id="nomeComprador" type="text" minlength="4" maxlength="80" placeholder="Como você quer se identificar">
     </label>
     <label>Seu contato (WhatsApp)
-      <input id="contato" type="text" placeholder="(83) 90000-0000">
+      <input id="contato" type="tel" inputmode="tel" maxlength="16" placeholder="(83) 90000-0000">
     </label>
+
+    <h2 class="form-etapa">2. Quem vai receber?</h2>
     <label>Nome de quem vai receber
-      <input id="nomeDestinatario" type="text" placeholder="Nome de quem receberá a surpresa">
+      <input id="nomeDestinatario" type="text" minlength="4" maxlength="80" placeholder="Nome de quem receberá a surpresa">
     </label>
     <label>Equipe do destinatário
       <input id="equipeDestinatario" type="text" placeholder="Ex: Equipe Azul, Anjos, Grupo 3...">
     </label>
+    <h2 class="form-etapa">3. Mensagem ou instrução especial</h2>
+    <label>Mensagem ou instrução especial
+      <textarea id="mensagemEspecial" rows="2" maxlength="50" placeholder="Recado curto, até 50 caracteres"></textarea>
+    </label>
     <div id="form-erro" class="aviso erro oculto"></div>
-    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
-      <button class="destaque" onclick="enviarPedido()">Gerar cobrança Pix</button>
+    <div id="lista-destinatarios" class="destinatarios-box oculto"></div>
+    <div class="acoes-formulario">
+      <button id="btn-adicionar-destinatario" class="secundario" onclick="adicionarDestinatario()">Enviar para mais uma pessoa</button>
+      <button id="btn-gerar-pix" class="destaque" onclick="enviarPedido()">Gerar cobrança Pix</button>
       <button class="secundario" onclick="cancelarFormulario()">Cancelar</button>
     </div>
   </section>
@@ -63,11 +90,16 @@
     <p>Valor: <strong id="pix-valor"></strong></p>
     <p>Copia e cola (simulado):</p>
     <textarea readonly rows="3" id="pix-copiacola"></textarea>
+    <div id="pix-itens" class="destinatarios-box oculto"></div>
     <p id="pix-status" style="margin-top:12px;">Status: <span class="status-pendente_pagamento">aguardando pagamento...</span></p>
     <div class="aviso info">
       Guarde o número do ticket para acompanhar o status da entrega mais abaixo.
     </div>
-    <button class="secundario" onclick="simularPagamento()" style="margin-top:12px;">Simular pagamento (apenas demo)</button>
+    <div class="acoes-formulario">
+      <button class="secundario" onclick="voltarAoCardapio()">Voltar ao cardápio</button>
+      <a href="/consultar.html" class="botao-link secundario">Consultar pedido</a>
+      <button class="secundario" onclick="simularPagamento()">Simular pagamento (apenas demo)</button>
+    </div>
   </section>
 
 </main>

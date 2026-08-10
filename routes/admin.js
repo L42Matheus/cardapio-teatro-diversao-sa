@@ -45,6 +45,17 @@ function exigirAdmin(req, res, next) {
   next();
 }
 
+function equipeOperacao(req) {
+  if (req.usuarioAtual.papel !== 'admin') return req.usuarioAtual.nome;
+
+  const nome = String((req.body && req.body.equipeOperacao) || '').trim();
+  const equipes = db.listarEntregadores().map(e => e.nome);
+  if (!nome || !equipes.includes(nome)) {
+    throw new Error('EQUIPE_OBRIGATORIA');
+  }
+  return nome;
+}
+
 // POST /api/admin/login { usuario, senha } -> rota publica
 router.post('/login', (req, res) => {
   const { usuario, senha } = req.body || {};
@@ -181,13 +192,14 @@ router.post('/pedidos/:id/atribuir', (req, res) => {
 // POST /api/admin/pedidos/:id/pegar -> reserva o pedido pra equipe logada
 router.post('/pedidos/:id/pegar', (req, res) => {
   try {
-    const pedido = db.pegarPedido(req.params.id, req.usuarioAtual.nome);
+    const pedido = db.pegarPedido(req.params.id, equipeOperacao(req));
     res.json(pedido);
   } catch (err) {
     const mapa = {
       PEDIDO_NAO_ENCONTRADO:  [404, 'Pedido nao encontrado.'],
       PEDIDO_NAO_DISPONIVEL:  [409, 'Pedido nao esta disponivel para ser pego.'],
-      PEDIDO_JA_PEGO:         [409, 'Este pedido ja foi pego por outra equipe.']
+      PEDIDO_JA_PEGO:         [409, 'Este pedido ja foi pego por outra equipe.'],
+      EQUIPE_OBRIGATORIA:     [400, 'Escolha a equipe de entrega antes de pegar o pedido.']
     };
     const [codigo, msg] = mapa[err.message] || [500, 'Erro ao pegar o pedido.'];
     res.status(codigo).json({ erro: msg });
@@ -198,13 +210,14 @@ router.post('/pedidos/:id/pegar', (req, res) => {
 router.post('/pedidos/:id/liberar', (req, res) => {
   const { forcado } = req.body || {};
   try {
-    const pedido = db.liberarPedido(req.params.id, req.usuarioAtual.nome, !!forcado);
+    const pedido = db.liberarPedido(req.params.id, equipeOperacao(req), !!forcado);
     res.json(pedido);
   } catch (err) {
     const mapa = {
       PEDIDO_NAO_ENCONTRADO: [404, 'Pedido nao encontrado.'],
       PEDIDO_JA_ENTREGUE:    [409, 'Pedido ja foi entregue.'],
-      PEDIDO_NAO_SEU:        [409, 'Este pedido esta com outra equipe.']
+      PEDIDO_NAO_SEU:        [409, 'Este pedido esta com outra equipe.'],
+      EQUIPE_OBRIGATORIA:    [400, 'Escolha a equipe de entrega antes de liberar o pedido.']
     };
     const [codigo, msg] = mapa[err.message] || [500, 'Erro ao liberar o pedido.'];
     res.status(codigo).json({ erro: msg });
@@ -214,13 +227,14 @@ router.post('/pedidos/:id/liberar', (req, res) => {
 // POST /api/admin/pedidos/:id/entregar -> marca como entregue
 router.post('/pedidos/:id/entregar', (req, res) => {
   try {
-    const pedido = db.marcarEntregue(req.params.id, req.usuarioAtual.nome);
+    const pedido = db.marcarEntregue(req.params.id, equipeOperacao(req));
     res.json(pedido);
   } catch (err) {
     const mapa = {
       PEDIDO_NAO_ENCONTRADO:   [404, 'Pedido nao encontrado.'],
       PEDIDO_NAO_PAGO:         [409, 'Pedido precisa estar pago para ser marcado como entregue.'],
-      PEDIDO_DE_OUTRA_EQUIPE:  [409, 'Este pedido esta reservado por outra equipe.']
+      PEDIDO_DE_OUTRA_EQUIPE:  [409, 'Este pedido esta reservado por outra equipe.'],
+      EQUIPE_OBRIGATORIA:      [400, 'Escolha a equipe de entrega antes de marcar como entregue.']
     };
     const [codigo, msg] = mapa[err.message] || [500, 'Erro ao marcar como entregue.'];
     res.status(codigo).json({ erro: msg });

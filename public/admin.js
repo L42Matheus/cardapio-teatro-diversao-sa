@@ -1,6 +1,9 @@
 let categoriasCache = [];
 let pedidosCache = [];
 let sessao = null; // { token, usuario, nome, papel }
+let entregadoresCache = [];
+let equipeOperacao = null;
+let pedidosTimer = null;
 
 const RESERVA_TTL_MS = 10 * 60 * 1000;
 
@@ -17,6 +20,23 @@ function formatarHora(iso) {
   if (!iso) return '';
   const d = new Date(iso);
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function statusPedido(status) {
+  const nomes = {
+    pendente_pagamento: 'Aguardando Pix',
+    pago: 'Pago',
+    aguardando: 'A entregar',
+    entregue: 'Entregue',
+    cancelado: 'Cancelado'
+  };
+  return `<span class="status-chip status-${status}">${nomes[status] || status || '-'}</span>`;
+}
+
+function mensagemCurta(texto) {
+  const msg = String(texto || '').trim();
+  if (!msg) return '<span style="color:var(--texto-fraco);">—</span>';
+  return msg.length > 50 ? `${msg.slice(0, 50)}...` : msg;
 }
 
 function minutosDesde(iso) {
@@ -45,6 +65,69 @@ async function apiAdmin(caminho, opts = {}) {
     throw new Error('SESSAO_EXPIRADA');
   }
   return res;
+}
+
+function nomeEquipeAtual() {
+  return sessao && sessao.papel === 'admin'
+    ? equipeOperacao
+    : sessao?.nome;
+}
+
+function selecionarEquipeOperacao(nome) {
+  equipeOperacao = nome;
+  localStorage.setItem('equipeOperacaoAdmin', nome);
+  renderSeletorEquipe();
+  renderTodos();
+  renderPendentes();
+}
+
+function selecionarEquipeLogin(nome) {
+  equipeOperacao = nome;
+  localStorage.setItem('equipeOperacaoAdmin', nome);
+  renderEquipeLogin();
+}
+
+function renderEquipeLogin() {
+  const salva = localStorage.getItem('equipeOperacaoAdmin') || equipeOperacao;
+  document.querySelectorAll('#botoes-equipe-login .perfil-login').forEach(btn => {
+    btn.classList.toggle('ativo', btn.dataset.equipe === salva);
+  });
+}
+
+async function carregarEntregadores() {
+  const res = await apiAdmin('/entregadores');
+  entregadoresCache = await res.json();
+  const salva = localStorage.getItem('equipeOperacaoAdmin');
+  if (sessao.papel === 'admin') {
+    equipeOperacao = entregadoresCache.some(e => e.nome === salva) ? salva : null;
+  } else {
+    equipeOperacao = sessao.nome;
+  }
+  renderSeletorEquipe();
+}
+
+function renderSeletorEquipe() {
+  const box = document.getElementById('seletor-equipe');
+  const botoes = document.getElementById('botoes-equipe-operacao');
+  const status = document.getElementById('equipe-operacao-status');
+  if (!box || !botoes || !status) return;
+
+  if (!sessao || sessao.papel !== 'admin') {
+    box.classList.add('oculto');
+    return;
+  }
+
+  box.classList.remove('oculto');
+  status.textContent = equipeOperacao
+    ? `Operando como ${equipeOperacao}.`
+    : 'Escolha quem está operando este painel.';
+  botoes.innerHTML = entregadoresCache.map((e, i) => `
+    <button type="button"
+            class="perfil-login${equipeOperacao === e.nome ? ' ativo' : ''}"
+            onclick="selecionarEquipeOperacao('${e.nome.replace(/'/g, "\\'")}')">
+      Equipe ${i + 1}
+    </button>
+  `).join('');
 }
 
 async function fazerLogin(ev) {
@@ -76,14 +159,23 @@ function sair() {
   if (sessao) {
     fetch('/api/admin/logout', { method: 'POST', headers: authHeader() }).catch(() => {});
   }
+  if (pedidosTimer) {
+    clearInterval(pedidosTimer);
+    pedidosTimer = null;
+  }
   localStorage.removeItem('sessaoAdmin');
   sessao = null;
   mostrarLogin();
 }
 
 function mostrarLogin() {
+  if (pedidosTimer) {
+    clearInterval(pedidosTimer);
+    pedidosTimer = null;
+  }
   document.getElementById('tela-login').classList.remove('oculto');
   document.getElementById('painel-admin').classList.add('oculto');
+  renderEquipeLogin();
 }
 
 async function mostrarPainel() {
@@ -99,14 +191,17 @@ async function mostrarPainel() {
   configurarAbas();
 
   await carregarCategorias();
+  await carregarEntregadores();
   await carregarPedidos();
-  setInterval(carregarPedidos, 5000);
+  if (pedidosTimer) clearInterval(pedidosTimer);
+  pedidosTimer = setInterval(carregarPedidos, 5000);
 
   if (ehAdmin) {
     await carregarEstoque();
   }
 
   document.getElementById('filtro-categoria-pendentes').addEventListener('change', renderPendentes);
+  document.getElementById('filtro-busca-todos').addEventListener('input', renderTodos);
   document.getElementById('filtro-busca-pendentes').addEventListener('input', renderPendentes);
   document.getElementById('filtro-busca-entregues').addEventListener('input', renderEntregues);
 }
@@ -143,17 +238,17 @@ function renderEstoque() {
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>
+      <td data-label="Produto" class="estoque-produto">
         <strong>${p.nome}</strong><br>
         <small style="color:var(--texto-fraco);">${nomeCategoria(p.categoria)}</small>
       </td>
-      <td style="text-align:center;"><strong>${vendidos}</strong></td>
-      <td>
-        <input type="number" min="0" step="1" value="${p.estoque}" id="estoque-input-${p.id}" style="width:70px; text-align:center;">
-        ${esgotado ? '<br><small style="color:var(--vermelho); font-weight:600;">esgotado</small>' : ''}
+      <td data-label="Disponíveis" class="estoque-disponivel">
+        <input class="estoque-input" type="number" min="0" step="1" value="${p.estoque}" id="estoque-input-${p.id}">
+        ${esgotado ? '<small class="estoque-esgotado">Esgotado</small>' : ''}
       </td>
-      <td style="text-align:center; color:var(--texto-fraco);">${total}</td>
-      <td><button class="secundario" onclick="salvarEstoque(${p.id})">Salvar</button></td>
+      <td data-label="Vendidos" class="estoque-numero"><strong>${vendidos}</strong></td>
+      <td data-label="Total" class="estoque-total">${total}</td>
+      <td data-label="Ação"><button class="secundario" onclick="salvarEstoque(${p.id})">Salvar</button></td>
     `;
     corpo.appendChild(tr);
   });
@@ -181,16 +276,26 @@ function configurarAbas() {
   document.querySelectorAll('.abas-admin .aba').forEach(btn => {
     btn.onclick = () => trocarAba(btn.dataset.aba);
   });
-  // Restaura ultima aba usada; default = pendentes
-  const salva = localStorage.getItem('abaAdminAtiva') || 'pendentes';
+  // Restaura ultima aba usada; default = todos
+  const salva = localStorage.getItem('abaAdminAtiva') || 'todos';
   const abaBtn = document.querySelector(`.abas-admin .aba[data-aba="${salva}"]`);
-  const valida = abaBtn && !abaBtn.classList.contains('oculto') ? salva : 'pendentes';
+  const valida = abaBtn && !abaBtn.classList.contains('oculto') ? salva : 'todos';
   trocarAba(valida);
 }
+
+function centralizarAbaAdmin(btn) {
+  const trilho = btn?.closest('.abas-admin');
+  if (!trilho) return;
+  const left = btn.offsetLeft - ((trilho.clientWidth - btn.offsetWidth) / 2);
+  trilho.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+}
+
 function trocarAba(nome) {
   document.querySelectorAll('.abas-admin .aba').forEach(a => {
     a.classList.toggle('ativa', a.dataset.aba === nome);
   });
+  const abaAtiva = document.querySelector(`.abas-admin .aba[data-aba="${nome}"]`);
+  requestAnimationFrame(() => centralizarAbaAdmin(abaAtiva));
   document.querySelectorAll('.tab-conteudo').forEach(s => {
     s.classList.toggle('oculto', s.id !== 'tab-' + nome);
   });
@@ -247,14 +352,64 @@ function renderResumo(pedidos) {
 // ---------- Filtros e ordenação ----------
 function filtroTexto(p, termo) {
   if (!termo) return true;
-  const alvo = `${p.nomeComprador || ''} ${p.nomeDestinatario || ''} ${p.equipeDestinatario || ''}`.toLowerCase();
+  const alvo = [
+    p.codigo,
+    p.status,
+    p.produtoNome,
+    p.nomeComprador,
+    p.nomeDestinatario,
+    p.equipeDestinatario,
+    p.contato
+  ].join(' ').toLowerCase();
   return alvo.includes(termo.toLowerCase());
 }
 
 function estadoReserva(p) {
   if (!p.claimedBy || !reservaAtiva(p)) return 'livre';
-  if (p.claimedBy === sessao.nome) return 'minha';
+  if (p.claimedBy === nomeEquipeAtual()) return 'minha';
   return 'outra';
+}
+
+// ---------- Todos ----------
+function renderTodos() {
+  const corpo = document.getElementById('corpo-todos');
+  const busca = document.getElementById('filtro-busca-todos')?.value.trim() || '';
+  if (!corpo) return;
+
+  const lista = pedidosCache
+    .filter(p => filtroTexto(p, busca))
+    .sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm));
+
+  document.getElementById('contador-todos').textContent = `(${lista.length})`;
+  const badgeTodos = document.getElementById('aba-contador-todos');
+  if (badgeTodos) badgeTodos.innerHTML = lista.length ? `<span class="contador">${lista.length}</span>` : '';
+  corpo.innerHTML = '';
+
+  if (lista.length === 0) {
+    corpo.innerHTML = `<tr class="linha-vazia"><td colspan="10" style="text-align:center; color:var(--texto-fraco); padding:20px;">Nenhum pedido encontrado.</td></tr>`;
+    return;
+  }
+
+  lista.forEach(p => {
+    const tr = document.createElement('tr');
+    const compradorHTML = p.anonimo
+      ? `<span style="color:var(--texto-fraco); font-weight:600;">Anônimo</span><br><small>${p.contato || ''}</small>`
+      : `${p.nomeComprador || '-'}<br><small>${p.contato || ''}</small>`;
+
+    tr.innerHTML = `
+      <td data-label="Ticket"><strong>${p.codigo || '#' + p.id}</strong></td>
+      <td data-label="Status">${statusPedido(p.status)}</td>
+      <td data-label="Hora">${formatarHora(p.criadoEm)}</td>
+      <td data-label="Categoria">${nomeCategoria(p.categoria)}</td>
+      <td data-label="Produto">${p.produtoNome}</td>
+      <td data-label="Destinatário"><strong>${p.nomeDestinatario}</strong></td>
+      <td data-label="Equipe">${p.equipeDestinatario || '<span style="color:var(--texto-fraco);">—</span>'}</td>
+      <td data-label="Comprador">${compradorHTML}</td>
+      <td data-label="Mensagem">${mensagemCurta(p.mensagemEspecial)}</td>
+      <td data-label="Valor">${formatarBRL(p.valor)}</td>
+    `;
+    corpo.appendChild(tr);
+  });
 }
 
 // ---------- Pendentes ----------
@@ -268,9 +423,9 @@ function renderPendentes() {
     .filter(p => categoria === 'todos' || p.categoria === categoria)
     .filter(p => filtroTexto(p, busca));
 
-  // Ordem: livres primeiro (FIFO), depois minhas, depois de outras equipes,
+  // Ordem: minhas reservas primeiro, depois livres (FIFO), depois de outras equipes,
   // dentro de cada grupo por horário de criação (mais antigo primeiro).
-  const prioridade = { livre: 0, minha: 1, outra: 2 };
+  const prioridade = { minha: 0, livre: 1, outra: 2 };
   lista.sort((a, b) => {
     const pa = prioridade[estadoReserva(a)];
     const pb = prioridade[estadoReserva(b)];
@@ -284,7 +439,7 @@ function renderPendentes() {
   corpo.innerHTML = '';
 
   if (lista.length === 0) {
-    corpo.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--texto-fraco); padding:20px;">Nenhum pedido aguardando entrega. 🎉</td></tr>`;
+    corpo.innerHTML = `<tr class="linha-vazia"><td colspan="10" style="text-align:center; color:var(--texto-fraco); padding:20px;">Nenhum pedido aguardando entrega. 🎉</td></tr>`;
     return;
   }
 
@@ -297,6 +452,7 @@ function renderPendentes() {
     let acoesHTML = '';
     let indicadorHTML = '';
     let corLinha = '';
+    tr.className = `pedido-${estado}`;
 
     if (estado === 'livre') {
       if (!primeiroLivreJaMarcado) {
@@ -304,7 +460,9 @@ function renderPendentes() {
         indicadorHTML = '<br><small style="color:var(--amarelo-esc); font-weight:600;">PRÓXIMO</small>';
         primeiroLivreJaMarcado = true;
       }
-      acoesHTML = `<button onclick="pegar(${p.id})">Peguei este</button>`;
+      acoesHTML = nomeEquipeAtual()
+        ? `<button onclick="pegar(${p.id})">Peguei este</button>`
+        : `<button disabled>Escolha equipe</button>`;
     } else if (estado === 'minha') {
       corLinha = 'background: rgba(30,90,168,0.08);';
       indicadorHTML = `<br><small style="color:var(--azul); font-weight:600;">🔵 VOCÊ (${minutosDesde(p.claimedAt)} min)</small>`;
@@ -319,16 +477,22 @@ function renderPendentes() {
     }
 
     tr.style.cssText = corLinha;
+    tr.dataset.pedidoId = String(p.id);
+    const compradorHTML = p.anonimo
+      ? `<span style="color:var(--texto-fraco); font-weight:600;">Anônimo</span><br><small>${p.contato || ''}</small>`
+      : `${p.nomeComprador}<br><small>${p.contato || ''}</small>`;
+
     tr.innerHTML = `
-      <td><strong>${p.codigo || '#' + p.id}</strong>${indicadorHTML}</td>
-      <td>${formatarHora(p.criadoEm)}</td>
-      <td>${nomeCategoria(p.categoria)}</td>
-      <td>${p.produtoNome}</td>
-      <td><strong>${p.nomeDestinatario}</strong></td>
-      <td>${p.equipeDestinatario || '<span style="color:var(--texto-fraco);">—</span>'}</td>
-      <td>${p.nomeComprador}<br><small>${p.contato || ''}</small></td>
-      <td>${formatarBRL(p.valor)}</td>
-      <td style="white-space:nowrap;">${acoesHTML}</td>
+      <td data-label="Ticket"><strong>${p.codigo || '#' + p.id}</strong>${indicadorHTML}</td>
+      <td data-label="Hora">${formatarHora(p.criadoEm)}</td>
+      <td data-label="Categoria">${nomeCategoria(p.categoria)}</td>
+      <td data-label="Produto">${p.produtoNome}</td>
+      <td data-label="Destinatário"><strong>${p.nomeDestinatario}</strong></td>
+      <td data-label="Equipe">${p.equipeDestinatario || '<span style="color:var(--texto-fraco);">—</span>'}</td>
+      <td data-label="Comprador">${compradorHTML}</td>
+      <td data-label="Mensagem">${mensagemCurta(p.mensagemEspecial)}</td>
+      <td data-label="Valor">${formatarBRL(p.valor)}</td>
+      <td data-label="Ação" class="acoes-pedido">${acoesHTML}</td>
     `;
     corpo.appendChild(tr);
   });
@@ -350,22 +514,27 @@ function renderEntregues() {
   corpo.innerHTML = '';
 
   if (lista.length === 0) {
-    corpo.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--texto-fraco); padding:20px;">Nenhuma entrega concluída ainda.</td></tr>`;
+    corpo.innerHTML = `<tr class="linha-vazia"><td colspan="10" style="text-align:center; color:var(--texto-fraco); padding:20px;">Nenhuma entrega concluída ainda.</td></tr>`;
     return;
   }
 
   lista.forEach(p => {
     const tr = document.createElement('tr');
+    const compradorHTML = p.anonimo
+      ? '<span style="color:var(--texto-fraco); font-weight:600;">Anônimo</span>'
+      : p.nomeComprador;
+
     tr.innerHTML = `
-      <td><strong>${p.codigo || '#' + p.id}</strong></td>
-      <td>${formatarHora(p.atualizadoEm)}</td>
-      <td>${p.equipeEntregou || '<span style="color:var(--texto-fraco);">—</span>'}</td>
-      <td>${nomeCategoria(p.categoria)}</td>
-      <td>${p.produtoNome}</td>
-      <td>${p.nomeDestinatario}</td>
-      <td>${p.equipeDestinatario || '<span style="color:var(--texto-fraco);">—</span>'}</td>
-      <td>${p.nomeComprador}</td>
-      <td>${formatarBRL(p.valor)}</td>
+      <td data-label="Ticket"><strong>${p.codigo || '#' + p.id}</strong></td>
+      <td data-label="Entregue às">${formatarHora(p.atualizadoEm)}</td>
+      <td data-label="Por">${p.equipeEntregou || '<span style="color:var(--texto-fraco);">—</span>'}</td>
+      <td data-label="Categoria">${nomeCategoria(p.categoria)}</td>
+      <td data-label="Produto">${p.produtoNome}</td>
+      <td data-label="Destinatário">${p.nomeDestinatario}</td>
+      <td data-label="Equipe">${p.equipeDestinatario || '<span style="color:var(--texto-fraco);">—</span>'}</td>
+      <td data-label="Comprador">${compradorHTML}</td>
+      <td data-label="Mensagem">${mensagemCurta(p.mensagemEspecial)}</td>
+      <td data-label="Valor">${formatarBRL(p.valor)}</td>
     `;
     corpo.appendChild(tr);
   });
@@ -375,6 +544,7 @@ async function carregarPedidos() {
   const res = await apiAdmin('/pedidos');
   pedidosCache = await res.json();
   renderResumo(pedidosCache);
+  renderTodos();
   renderPendentes();
   renderEntregues();
   // A tabela de estoque mostra a contagem de vendidos por produto (derivada
@@ -384,10 +554,20 @@ async function carregarPedidos() {
 
 // ---------- Ações ----------
 async function pegar(pedidoId) {
-  const res = await apiAdmin(`/pedidos/${pedidoId}/pegar`, { method: 'POST' });
+  if (!nomeEquipeAtual()) {
+    alert('Escolha a equipe de entrega antes de pegar um pedido.');
+    return;
+  }
+  const res = await apiAdmin(`/pedidos/${pedidoId}/pegar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ equipeOperacao: nomeEquipeAtual() })
+  });
   const dados = await res.json();
   if (!res.ok) { alert(dados.erro || 'Erro ao pegar.'); carregarPedidos(); return; }
-  carregarPedidos();
+  await carregarPedidos();
+  document.getElementById('tab-pendentes')
+    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function liberar(pedidoId, forcado) {
@@ -395,7 +575,7 @@ async function liberar(pedidoId, forcado) {
   const res = await apiAdmin(`/pedidos/${pedidoId}/liberar`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ forcado })
+    body: JSON.stringify({ forcado, equipeOperacao: nomeEquipeAtual() })
   });
   const dados = await res.json();
   if (!res.ok) { alert(dados.erro || 'Erro ao liberar.'); carregarPedidos(); return; }
@@ -403,7 +583,15 @@ async function liberar(pedidoId, forcado) {
 }
 
 async function entregar(pedidoId) {
-  const res = await apiAdmin(`/pedidos/${pedidoId}/entregar`, { method: 'POST' });
+  if (!nomeEquipeAtual()) {
+    alert('Escolha a equipe de entrega antes de marcar como entregue.');
+    return;
+  }
+  const res = await apiAdmin(`/pedidos/${pedidoId}/entregar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ equipeOperacao: nomeEquipeAtual() })
+  });
   const dados = await res.json();
   if (!res.ok) { alert(dados.erro || 'Erro ao marcar como entregue.'); carregarPedidos(); return; }
   carregarPedidos();
@@ -430,3 +618,4 @@ async function iniciar() {
 }
 
 iniciar();
+renderEquipeLogin();

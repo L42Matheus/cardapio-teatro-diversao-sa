@@ -26,12 +26,25 @@ async function consultarTicket() {
     return;
   }
   const dados = await res.json();
+  const itens = Array.isArray(dados.itens) && dados.itens.length > 1
+    ? `
+      <div style="margin-top:8px;">
+        ${dados.itens.map((item, i) => `
+          <div style="padding:7px 0; border-top:1px solid rgba(255,255,255,0.45);">
+            ${i + 1}. ${item.produto} para <strong>${item.destinatario}</strong>
+            <br><small>${item.equipe || ''} · <span class="status-${item.status}">${legendaStatus(item.status)}</span></small>
+          </div>
+        `).join('')}
+      </div>
+    `
+    : `<div>${dados.produto} para <strong>${dados.destinatario}</strong></div>`;
+
   resultadoEl.innerHTML = `
     <div class="aviso sucesso">
       <div style="font-size:1.1rem; margin-bottom:6px;">
         <strong>${dados.ticket}</strong>
       </div>
-      <div>${dados.produto} para <strong>${dados.destinatario}</strong></div>
+      ${itens}
       <div style="margin-top:8px;">
         Status: <span class="status-${dados.status}">${legendaStatus(dados.status)}</span>
       </div>
