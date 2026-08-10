@@ -93,21 +93,41 @@ function carregar() {
 
 // Migracoes leves aplicadas a bancos ja existentes. Rodam a cada carga
 // mas so alteram/salvam se ainda nao foram aplicadas — idempotentes.
+//
+// Se a env var ADMIN_PASSWORD estiver definida, ela vira a senha oficial
+// do admin (sobrescrevendo a senha no db.json a cada boot). Isso permite
+// definir/rotacionar a senha do admin via painel do Railway sem editar
+// codigo. Se nao estiver definida, cai no default 'neymar'.
 function aplicarMigracoes(dados) {
   let alterou = false;
+  const senhaAdminDesejada = process.env.ADMIN_PASSWORD || 'neymar';
+  const hashDesejado = hashSenha(senhaAdminDesejada);
 
   // Bancos antigos (anteriores ao suporte a login) nao tem 'usuarios'.
   if (!Array.isArray(dados.usuarios)) {
     dados.usuarios = [
-      { id: 1, usuario: 'teatro', senhaHash: hashSenha('neymar'), papel: 'admin', nome: 'Admin' }
+      { id: 1, usuario: 'teatro', senhaHash: hashDesejado, papel: 'admin', nome: 'Admin' }
     ];
     dados.proximoUsuarioId = dados.proximoUsuarioId || 2;
     alterou = true;
   } else {
-    // Renomeia o antigo admin "neymar" -> "teatro" mantendo a mesma senha.
+    // Renomeia o antigo admin "neymar" -> "teatro".
     const antigoAdmin = dados.usuarios.find(u => u.usuario === 'neymar' && u.papel === 'admin');
     if (antigoAdmin) {
       antigoAdmin.usuario = 'teatro';
+      alterou = true;
+    }
+    // Garante que existe um admin.
+    let admin = dados.usuarios.find(u => u.papel === 'admin');
+    if (!admin) {
+      admin = { id: dados.proximoUsuarioId || 1, usuario: 'teatro', senhaHash: hashDesejado, papel: 'admin', nome: 'Admin' };
+      dados.usuarios.push(admin);
+      dados.proximoUsuarioId = (dados.proximoUsuarioId || 1) + 1;
+      alterou = true;
+    }
+    // Sincroniza a senha do admin com ADMIN_PASSWORD (ou 'neymar' se nao setada).
+    if (admin.senhaHash !== hashDesejado) {
+      admin.senhaHash = hashDesejado;
       alterou = true;
     }
   }
