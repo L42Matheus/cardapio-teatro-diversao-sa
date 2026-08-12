@@ -45,11 +45,12 @@ function exigirAdmin(req, res, next) {
   next();
 }
 
-function equipeOperacao(req) {
+async function equipeOperacao(req) {
   if (req.usuarioAtual.papel !== 'admin') return req.usuarioAtual.nome;
 
   const nome = String((req.body && req.body.equipeOperacao) || '').trim();
-  const equipes = db.listarEntregadores().map(e => e.nome);
+  const entregadores = await db.listarEntregadores();
+  const equipes = entregadores.map(e => e.nome);
   if (!nome || !equipes.includes(nome)) {
     throw new Error('EQUIPE_OBRIGATORIA');
   }
@@ -57,9 +58,9 @@ function equipeOperacao(req) {
 }
 
 // POST /api/admin/login { usuario, senha } -> rota publica
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { usuario, senha } = req.body || {};
-  const user = db.autenticarUsuario(usuario, senha);
+  const user = await db.autenticarUsuario(usuario, senha);
   if (!user) {
     return res.status(401).json({ erro: 'Usuario ou senha invalidos.' });
   }
@@ -85,15 +86,15 @@ router.get('/me', (req, res) => {
 // ---- Gestao de equipes (somente admin) ----
 
 // GET /api/admin/usuarios -> lista admin + equipes
-router.get('/usuarios', exigirAdmin, (req, res) => {
-  res.json(db.listarUsuarios());
+router.get('/usuarios', exigirAdmin, async (req, res) => {
+  res.json(await db.listarUsuarios());
 });
 
 // POST /api/admin/usuarios { usuario, senha, nome } -> cria uma equipe nova
-router.post('/usuarios', exigirAdmin, (req, res) => {
+router.post('/usuarios', exigirAdmin, async (req, res) => {
   const { usuario, senha, nome } = req.body || {};
   try {
-    const novo = db.criarUsuario({ usuario, senha, nome });
+    const novo = await db.criarUsuario({ usuario, senha, nome });
     res.status(201).json(novo);
   } catch (err) {
     const mapa = {
@@ -107,9 +108,9 @@ router.post('/usuarios', exigirAdmin, (req, res) => {
 });
 
 // DELETE /api/admin/usuarios/:id -> remove uma equipe (nao remove o admin)
-router.delete('/usuarios/:id', exigirAdmin, (req, res) => {
+router.delete('/usuarios/:id', exigirAdmin, async (req, res) => {
   try {
-    db.removerUsuario(req.params.id);
+    await db.removerUsuario(req.params.id);
     res.json({ ok: true });
   } catch (err) {
     const mapa = {
@@ -124,15 +125,15 @@ router.delete('/usuarios/:id', exigirAdmin, (req, res) => {
 // ---- Estoque dos produtos (somente admin) ----
 
 // GET /api/admin/produtos -> lista todos os produtos com estoque
-router.get('/produtos', exigirAdmin, (req, res) => {
-  res.json(db.listarProdutosAdmin());
+router.get('/produtos', exigirAdmin, async (req, res) => {
+  res.json(await db.listarProdutosAdmin());
 });
 
 // PUT /api/admin/produtos/:id/estoque { estoque }
-router.put('/produtos/:id/estoque', exigirAdmin, (req, res) => {
+router.put('/produtos/:id/estoque', exigirAdmin, async (req, res) => {
   const { estoque } = req.body || {};
   try {
-    const produto = db.atualizarEstoque(req.params.id, estoque);
+    const produto = await db.atualizarEstoque(req.params.id, estoque);
     res.json(produto);
   } catch (err) {
     const mapa = {
@@ -147,36 +148,36 @@ router.put('/produtos/:id/estoque', exigirAdmin, (req, res) => {
 // ---- Botão do pânico (somente admin) ----
 
 // GET /api/admin/status -> estado atual do botao do panico
-router.get('/status', exigirAdmin, (req, res) => {
-  res.json(db.statusPedidos());
+router.get('/status', exigirAdmin, async (req, res) => {
+  res.json(await db.statusPedidos());
 });
 
 // POST /api/admin/panico { ativar } -> liga/desliga o botao do panico,
 // pausando ou retomando a criacao de novos pedidos no site principal
-router.post('/panico', exigirAdmin, (req, res) => {
+router.post('/panico', exigirAdmin, async (req, res) => {
   const { ativar } = req.body || {};
-  const status = ativar ? db.pausarPedidos() : db.retomarPedidos();
+  const status = ativar ? await db.pausarPedidos() : await db.retomarPedidos();
   res.json(status);
 });
 
 // ---- Pedidos (admin + equipes) ----
 
 // GET /api/admin/pedidos -> lista todos os pedidos, mais recentes primeiro
-router.get('/pedidos', (req, res) => {
-  const pedidos = db.listarPedidos().slice().sort((a, b) => b.id - a.id);
+router.get('/pedidos', async (req, res) => {
+  const pedidos = (await db.listarPedidos()).slice().sort((a, b) => b.id - a.id);
   res.json(pedidos);
 });
 
 // GET /api/admin/entregadores -> lista os 2 entregadores
-router.get('/entregadores', (req, res) => {
-  res.json(db.listarEntregadores());
+router.get('/entregadores', async (req, res) => {
+  res.json(await db.listarEntregadores());
 });
 
 // POST /api/admin/pedidos/:id/atribuir { entregadorId }
-router.post('/pedidos/:id/atribuir', (req, res) => {
+router.post('/pedidos/:id/atribuir', async (req, res) => {
   const { entregadorId } = req.body;
   try {
-    const pedido = db.atribuirEntregador(req.params.id, entregadorId);
+    const pedido = await db.atribuirEntregador(req.params.id, entregadorId);
     res.json(pedido);
   } catch (err) {
     const mapa = {
@@ -190,9 +191,10 @@ router.post('/pedidos/:id/atribuir', (req, res) => {
 });
 
 // POST /api/admin/pedidos/:id/pegar -> reserva o pedido pra equipe logada
-router.post('/pedidos/:id/pegar', (req, res) => {
+router.post('/pedidos/:id/pegar', async (req, res) => {
   try {
-    const pedido = db.pegarPedido(req.params.id, equipeOperacao(req));
+    const equipe = await equipeOperacao(req);
+    const pedido = await db.pegarPedido(req.params.id, equipe);
     res.json(pedido);
   } catch (err) {
     const mapa = {
@@ -207,10 +209,11 @@ router.post('/pedidos/:id/pegar', (req, res) => {
 });
 
 // POST /api/admin/pedidos/:id/liberar { forcado } -> libera a reserva
-router.post('/pedidos/:id/liberar', (req, res) => {
+router.post('/pedidos/:id/liberar', async (req, res) => {
   const { forcado } = req.body || {};
   try {
-    const pedido = db.liberarPedido(req.params.id, equipeOperacao(req), !!forcado);
+    const equipe = await equipeOperacao(req);
+    const pedido = await db.liberarPedido(req.params.id, equipe, !!forcado);
     res.json(pedido);
   } catch (err) {
     const mapa = {
@@ -225,9 +228,10 @@ router.post('/pedidos/:id/liberar', (req, res) => {
 });
 
 // POST /api/admin/pedidos/:id/entregar -> marca como entregue
-router.post('/pedidos/:id/entregar', (req, res) => {
+router.post('/pedidos/:id/entregar', async (req, res) => {
   try {
-    const pedido = db.marcarEntregue(req.params.id, equipeOperacao(req));
+    const equipe = await equipeOperacao(req);
+    const pedido = await db.marcarEntregue(req.params.id, equipe);
     res.json(pedido);
   } catch (err) {
     const mapa = {
@@ -244,12 +248,12 @@ router.post('/pedidos/:id/entregar', (req, res) => {
 // POST /api/admin/pedidos/:id/simular-pagamento -> marca manualmente como
 // pago, sem passar pela Efi. Somente admin (nao equipe). Uso: corrigir um
 // pedido cujo pagamento caiu mas o webhook nao chegou, ou testar o fluxo.
-router.post('/pedidos/:id/simular-pagamento', exigirAdmin, (req, res) => {
-  const pedido = db.buscarPedido(req.params.id);
+router.post('/pedidos/:id/simular-pagamento', exigirAdmin, async (req, res) => {
+  const pedido = await db.buscarPedido(req.params.id);
   if (!pedido) return res.status(404).json({ erro: 'Pedido nao encontrado.' });
 
   try {
-    const atualizado = db.atualizarStatusPorTxid(pedido.pixTxid, 'pago', {
+    const atualizado = await db.atualizarStatusPorTxid(pedido.pixTxid, 'pago', {
       origem: 'manual',
       valor: pedido.valor
     });

@@ -9,9 +9,32 @@ entrega e acompanha o status.
 
 ```bash
 npm install
-cp .env.example .env   # preencha com suas credenciais Efi (veja abaixo)
-npm start
+cp .env.example .env   # preencha com suas credenciais Efi e o banco (veja abaixo)
+npm run db:local       # sobe um Postgres local (baixa um binario portatil sozinho)
+npm start               # em outro terminal
 ```
+
+### Banco de dados (PostgreSQL)
+
+O "banco" e Postgres de verdade (via `pg`), nao mais um arquivo JSON.
+
+- **Local**: `npm run db:local` sobe um Postgres local automaticamente
+  (pacote `embedded-postgres`, baixa um binario portatil na primeira vez,
+  nao precisa instalar nada). Deixa esse comando rodando num terminal
+  separado enquanto desenvolve. O `.env.example` ja vem com o
+  `DATABASE_URL` apontando pra ele (`localhost:5488`).
+- **Producao (Railway)**: adicione um serviço PostgreSQL no seu projeto
+  Railway ("New" → "Database" → "Add PostgreSQL"). O Railway gera um
+  `DATABASE_URL` sozinho — se o serviço do app e o do Postgres estiverem
+  no mesmo projeto, referencie essa variável no serviço do app (ex:
+  `${{Postgres.DATABASE_URL}}` nas variáveis do serviço).
+- As tabelas e os dados iniciais (produtos, entregadores, usuário admin)
+  são criados sozinhos no primeiro boot (`db.iniciarBancoDados()` em
+  `server.js`) — não precisa rodar migração manual.
+- Pedidos concorrentes (dois compradores no último item, duas equipes
+  tentando pegar o mesmo pedido) são protegidos por transação com
+  `SELECT ... FOR UPDATE` — testado com 5 compras simultâneas disputando
+  3 unidades de estoque, sem overselling.
 
 ### Configuracao da Efi (Pix)
 
@@ -41,6 +64,8 @@ Railway, configure as variáveis de ambiente do serviço:
 
 | Variável | Valor |
 | --- | --- |
+| `DATABASE_URL` | Connection string do Postgres do Railway (referencie a variável do serviço Postgres) |
+| `DATABASE_SSL` | `true` se o Railway pedir SSL na connection string usada (a interna geralmente não pede) |
 | `EFI_SANDBOX` | `false` |
 | `EFI_CLIENT_ID` | Client ID de **produção** (par separado do de homologação) |
 | `EFI_CLIENT_SECRET` | Client Secret de produção |
@@ -54,19 +79,14 @@ Depois do primeiro deploy, pegue o domínio público gerado pelo Railway
 (ou o domínio próprio, se configurado) e cadastre o webhook na Efi de
 produção apontando pra ele (mesmo formato do passo 5 acima).
 
-**Risco aceito por enquanto**: o "banco" é um arquivo `data/db.json` no
-disco do container. Sem um [Volume](https://docs.railway.com/reference/volumes)
-configurado, esse arquivo é apagado a cada redeploy/reinício — os pedidos
-voltam a zero. Ok pra um evento curto testado com calma, mas vale
-configurar um Volume (ou migrar pra Postgres, item 3 da lista abaixo)
-antes de qualquer evento que não possa perder dados no meio.
-
 Depois abra:
 - Site do comprador: http://localhost:3000/
 - Painel do administrador: http://localhost:3000/admin.html
 
 ## O que ja funciona
 
+- Banco de dados PostgreSQL de verdade, com transacoes protegendo contra
+  condicao de corrida (estoque e disputa por pegar pedido)
 - Lista de produtos com foto, nome e preco (`/api/produtos`)
 - Criacao de pedido gerando um "ticket" (numero do pedido)
 - Geracao de cobranca Pix real via Efi, com QR Code e "copia e cola"
@@ -85,30 +105,27 @@ Depois abra:
 
 ## O que falta para ir pra producao
 
-1. **Trocar o banco de dados**: o prototipo usa um arquivo `data/db.json`
-   para ser simples de testar. As tabelas (`produtos`, `pedidos`,
-   `entregadores`) foram desenhadas para ir direto pra PostgreSQL —
-   so precisa reescrever as funcoes de `db.js` usando `pg` em vez de
-   ler/escrever o JSON. Isso tambem remove a condicao de corrida que
-   existe hoje (leitura/escrita do JSON inteiro sem lock) e o risco de
-   perder dados a cada redeploy no Railway (ver secao de Deploy acima).
-
-2. **Upload de foto dos produtos**: hoje as fotos ficam em
+1. **Upload de foto dos produtos**: hoje as fotos ficam em
    `uploads/produtos/` e sao referenciadas por caminho fixo no
    `db.js`. Se quiser trocar a foto sem editar codigo, adicionar
    um endpoint de upload (ex: com `multer`) no painel admin.
 
-3. **Cancelamento de pedidos que nao pagam**: hoje um pedido criado como
+2. **Cancelamento de pedidos que nao pagam**: hoje um pedido criado como
    `pendente_pagamento` fica ocupando estoque para sempre. Vale adicionar
    uma expiracao (ex: 15-30 min) que cancela pedidos nao pagos
    automaticamente, liberando o estoque.
+
+3. **Backup do Postgres**: o plugin do Railway ja guarda os dados de
+   forma persistente (não some mais em redeploy), mas vale confirmar no
+   painel do Railway se o backup automático está ativo pro plano
+   contratado antes do evento.
 
 ## Estrutura de pastas
 
 ```
 evento-marketplace/
-  server.js          -> ponto de entrada
-  db.js              -> "banco de dados" (JSON) e regras de negocio
+  server.js          -> ponto de entrada (sobe o banco antes do app.listen)
+  db.js              -> acesso ao PostgreSQL (pool, schema, seed, regras de negocio)
   pix.js             -> integracao real com a API Pix da Efi
   routes/
     publicas.js      -> produtos, criar pedido, consultar ticket
@@ -117,7 +134,8 @@ evento-marketplace/
   public/
     index.html/app.js -> site do comprador
     admin.html/admin.js -> painel do administrador
+  scripts/
+    pg-local.js       -> sobe um Postgres local pra desenvolvimento (npm run db:local)
   uploads/produtos/   -> fotos dos produtos
   certs/               -> certificado .p12 da Efi (gitignored)
-  data/db.json         -> gerado automaticamente na primeira execucao
 ```

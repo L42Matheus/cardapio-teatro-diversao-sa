@@ -26,7 +26,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-router.post('/pix', (req, res) => {
+router.post('/pix', async (req, res) => {
   const tokenEsperado = process.env.WEBHOOK_PIX_TOKEN;
   if (tokenEsperado && req.query.token !== tokenEsperado) {
     return res.status(403).json({ erro: 'Token invalido.' });
@@ -40,13 +40,13 @@ router.post('/pix', (req, res) => {
   const resultados = [];
 
   for (const evento of eventos) {
-    const pedido = db.buscarPedidoPorTxid(evento.txid);
+    const pedido = await db.buscarPedidoPorTxid(evento.txid);
     if (!pedido) {
       resultados.push({ txid: evento.txid, ok: false, motivo: 'pedido nao encontrado' });
       continue;
     }
     try {
-      db.atualizarStatusPorTxid(evento.txid, 'pago', {
+      await db.atualizarStatusPorTxid(evento.txid, 'pago', {
         origem: 'webhook',
         endToEndId: evento.endToEndId,
         valor: evento.valor,

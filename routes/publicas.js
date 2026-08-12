@@ -17,8 +17,8 @@ function telefoneValido(contato) {
 }
 
 // GET /api/produtos -> lista produtos disponiveis para compra
-router.get('/produtos', (req, res) => {
-  res.json(db.listarProdutosAtivos());
+router.get('/produtos', async (req, res) => {
+  res.json(await db.listarProdutosAtivos());
 });
 
 // GET /api/categorias -> categorias exibidas nas abas da loja
@@ -27,8 +27,8 @@ router.get('/categorias', (req, res) => {
 });
 
 // GET /api/status -> se os pedidos estao pausados (botao do panico do admin)
-router.get('/status', (req, res) => {
-  res.json(db.statusPedidos());
+router.get('/status', async (req, res) => {
+  res.json(await db.statusPedidos());
 });
 
 // POST /api/pedidos -> cria um novo pedido e gera a cobranca Pix
@@ -64,8 +64,8 @@ router.post('/pedidos', async (req, res) => {
 
   try {
     const grupo = destinatarios
-      ? db.criarPedidosMultiplos({ produtoId, nomeComprador, contato, destinatarios })
-      : { pedidos: [db.criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario, equipeDestinatario })] };
+      ? await db.criarPedidosMultiplos({ produtoId, nomeComprador, contato, destinatarios })
+      : { pedidos: [await db.criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario, equipeDestinatario })] };
 
     const pedidoBase = destinatarios
       ? { codigo: grupo.codigo, pixTxid: grupo.pixTxid, valor: grupo.valor }
@@ -113,7 +113,7 @@ router.post('/pedidos', async (req, res) => {
 
 // Aceita tanto o código público (EAC-XXXX) quanto o id numérico legado.
 // A consulta pública deve usar o código; o id fica para o admin.
-function acharPorTicket(param) {
+async function acharPorTicket(param) {
   if (!param) return null;
   const bruto = String(param).trim();
   if (bruto.toUpperCase().startsWith('EAC-')) {
@@ -126,10 +126,10 @@ function acharPorTicket(param) {
 }
 
 // GET /api/pedidos/:ticket -> consulta publica de status pelo codigo do pedido
-router.get('/pedidos/:ticket', (req, res) => {
-  const pedido = acharPorTicket(req.params.ticket);
+router.get('/pedidos/:ticket', async (req, res) => {
+  const pedido = await acharPorTicket(req.params.ticket);
   if (!pedido) return res.status(404).json({ erro: 'Pedido nao encontrado.' });
-  const grupo = pedido.codigo ? db.listarPedidosPorCodigo(pedido.codigo) : [pedido];
+  const grupo = pedido.codigo ? await db.listarPedidosPorCodigo(pedido.codigo) : [pedido];
 
   // So devolve o que o comprador precisa ver (nao expoe dados internos)
   res.json({
