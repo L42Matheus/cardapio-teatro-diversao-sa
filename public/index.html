@@ -93,6 +93,7 @@
     <button type="button" class="secundario" id="btn-copiar-pix" onclick="copiarPixCopiaECola()">📋 Copiar código</button>
     <div id="pix-itens" class="destinatarios-box oculto"></div>
     <p id="pix-status" style="margin-top:12px;">Status: <span class="status-pendente_pagamento">aguardando pagamento...</span></p>
+    <div id="pix-expira" class="aviso info oculto"></div>
     <div class="aviso info">
       Guarde o número do ticket para acompanhar o status da entrega mais abaixo.
     </div>
@@ -103,6 +104,19 @@
   </section>
 
 </main>
+
+<div id="popup-pagamento" class="popup-overlay oculto" onclick="if (event.target === this) fecharPopupPagamento();">
+  <div class="popup-card">
+    <div class="popup-icone">✅</div>
+    <h2>Pagamento confirmado!</h2>
+    <p id="popup-pagamento-texto">Recebemos seu Pix. Já pode acompanhar a entrega pelo código abaixo.</p>
+    <div class="ticket-box">
+      <div style="font-size:0.75rem; color:var(--texto-fraco); text-transform:uppercase;">Seu código</div>
+      <div class="numero" id="popup-pagamento-ticket"></div>
+    </div>
+    <button class="destaque botao-cheio" onclick="fecharPopupPagamento()">Entendi</button>
+  </div>
+</div>
 
 <footer class="eac-rodape">
   Feito com <span>&#10084;</span> pela equipe do <strong>EAC Santo Antônio</strong>

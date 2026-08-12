@@ -1,6 +1,7 @@
 let produtoSelecionado = null;
 let ticketAtual = null;
 let intervaloConsulta = null;
+let intervaloExpiracao = null;
 
 let categorias = [];
 let produtos = [];
@@ -171,6 +172,8 @@ function cancelarFormulario() {
 }
 
 function voltarAoCardapio() {
+  pararContagemExpiracao();
+  if (intervaloConsulta) { clearInterval(intervaloConsulta); intervaloConsulta = null; }
   if (modoPedidoDireto) {
     window.close();
     window.location.href = '/';
@@ -360,6 +363,7 @@ async function enviarPedido() {
       behavior: 'smooth'
     });
 
+    iniciarContagemExpiracao(dados.pix.expiraEm);
     iniciarPollingStatus(dados.ticket);
   } catch (err) {
     erroEl.textContent = 'Falha de conexão. Verifique sua internet e tente novamente.';
@@ -422,8 +426,52 @@ function iniciarPollingStatus(ticket) {
       document.getElementById('pix-status').innerHTML =
         `Status: <span class="status-${dados.status}">${legendaStatus(dados.status)}</span> — pagamento confirmado! Guarde seu código <strong>${dados.ticket}</strong>.`;
       clearInterval(intervaloConsulta);
+      pararContagemExpiracao();
+      mostrarPopupPagamento(dados.ticket);
     }
   }, 2000);
+}
+
+// ---------- Expiração do Pix ----------
+function iniciarContagemExpiracao(expiraEmIso) {
+  pararContagemExpiracao();
+  const el = document.getElementById('pix-expira');
+  if (!el || !expiraEmIso) return;
+  el.classList.remove('oculto');
+
+  function atualizar() {
+    const restanteMs = new Date(expiraEmIso).getTime() - Date.now();
+    if (restanteMs <= 0) {
+      el.textContent = '⏰ Este Pix expirou. Volte ao cardápio e gere um novo código.';
+      el.className = 'aviso erro';
+      pararContagemExpiracao();
+      return;
+    }
+    const min = Math.floor(restanteMs / 60000);
+    const seg = Math.floor((restanteMs % 60000) / 1000);
+    el.textContent = `⏳ Este Pix expira em ${min}:${String(seg).padStart(2, '0')}`;
+    el.className = 'aviso info';
+  }
+
+  atualizar();
+  intervaloExpiracao = setInterval(atualizar, 1000);
+}
+
+function pararContagemExpiracao() {
+  if (intervaloExpiracao) {
+    clearInterval(intervaloExpiracao);
+    intervaloExpiracao = null;
+  }
+}
+
+// ---------- Popup de pagamento confirmado ----------
+function mostrarPopupPagamento(ticket) {
+  document.getElementById('popup-pagamento-ticket').textContent = ticket;
+  document.getElementById('popup-pagamento').classList.remove('oculto');
+}
+
+function fecharPopupPagamento() {
+  document.getElementById('popup-pagamento').classList.add('oculto');
 }
 
 function legendaStatus(status) {
