@@ -288,7 +288,14 @@ function montarDestinatariosParaEnvio() {
   return lista;
 }
 
+let enviandoPedido = false;
+
 async function enviarPedido() {
+  // Trava contra cliques repetidos (ex: clicar varias vezes enquanto a API
+  // ainda esta respondendo) — sem isso, cada clique gerava um pedido/Pix
+  // duplicado. So libera de novo quando a requisicao terminar (sucesso ou erro).
+  if (enviandoPedido) return;
+
   const nomeComprador = document.getElementById('nomeComprador').value.trim();
   const contato = document.getElementById('contato').value.trim();
   const destinatarios = montarDestinatariosParaEnvio();
@@ -312,41 +319,56 @@ async function enviarPedido() {
     return;
   }
 
-  const res = await fetch('/api/pedidos', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      produtoId: produtoSelecionado,
-      nomeComprador,
-      contato,
-      destinatarios
-    })
-  });
+  const btnGerar = document.getElementById('btn-gerar-pix');
+  const textoOriginalBtn = btnGerar.textContent;
+  enviandoPedido = true;
+  btnGerar.disabled = true;
+  btnGerar.textContent = 'Gerando cobrança…';
 
-  const dados = await res.json();
+  try {
+    const res = await fetch('/api/pedidos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        produtoId: produtoSelecionado,
+        nomeComprador,
+        contato,
+        destinatarios
+      })
+    });
 
-  if (!res.ok) {
-    erroEl.textContent = dados.erro || 'Erro ao criar pedido.';
+    const dados = await res.json();
+
+    if (!res.ok) {
+      erroEl.textContent = dados.erro || 'Erro ao criar pedido.';
+      erroEl.classList.remove('oculto');
+      return;
+    }
+
+    ticketAtual = dados.ticket;
+    document.getElementById('secao-formulario').classList.add('oculto');
+    document.getElementById('secao-pix').classList.remove('oculto');
+    document.getElementById('pix-ticket').textContent = dados.ticket;
+    document.getElementById('pix-valor').textContent = `R$ ${dados.pix.valor.toFixed(2).replace('.', ',')}`;
+    document.getElementById('pix-copiacola').value = dados.pix.copiaECola;
+    renderizarItensPix(dados.itens || []);
+    document.getElementById('pix-status').innerHTML =
+      'Status: <span class="status-pendente_pagamento">aguardando pagamento...</span>';
+
+    window.scrollTo({
+      top: document.getElementById('secao-pix').offsetTop - 20,
+      behavior: 'smooth'
+    });
+
+    iniciarPollingStatus(dados.ticket);
+  } catch (err) {
+    erroEl.textContent = 'Falha de conexão. Verifique sua internet e tente novamente.';
     erroEl.classList.remove('oculto');
-    return;
+  } finally {
+    enviandoPedido = false;
+    btnGerar.disabled = false;
+    btnGerar.textContent = textoOriginalBtn;
   }
-
-  ticketAtual = dados.ticket;
-  document.getElementById('secao-formulario').classList.add('oculto');
-  document.getElementById('secao-pix').classList.remove('oculto');
-  document.getElementById('pix-ticket').textContent = dados.ticket;
-  document.getElementById('pix-valor').textContent = `R$ ${dados.pix.valor.toFixed(2).replace('.', ',')}`;
-  document.getElementById('pix-copiacola').value = dados.pix.copiaECola;
-  renderizarItensPix(dados.itens || []);
-  document.getElementById('pix-status').innerHTML =
-    'Status: <span class="status-pendente_pagamento">aguardando pagamento...</span>';
-
-  window.scrollTo({
-    top: document.getElementById('secao-pix').offsetTop - 20,
-    behavior: 'smooth'
-  });
-
-  iniciarPollingStatus(dados.ticket);
 }
 
 async function copiarPixCopiaECola() {
