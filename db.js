@@ -23,7 +23,8 @@ const CATEGORIAS = [
   { id: 'trote',     nome: 'Trotes',     emoji: '💌' },
   { id: 'rosa',      nome: 'Rosas',      emoji: '🌹' },
   { id: 'chocolate', nome: 'Chocolates', emoji: '🍫' },
-  { id: 'boton',     nome: 'Botons',     emoji: '📛' }
+  { id: 'boton',     nome: 'Botons',     emoji: '📛' },
+  { id: 'teste',     nome: 'Teste',      emoji: '🚨' }
 ];
 
 function estadoInicial() {
@@ -70,7 +71,11 @@ function estadoInicial() {
       { id: 5,  categoria: 'boton',     nome: 'Boton EAC',            preco: 3.00, foto: '/uploads/produtos/boton.svg',
         descricao: 'Boton oficial do EAC Santo Antônio.', ativo: true, estoque: 30 },
       { id: 6,  categoria: 'boton',     nome: 'Kit 3 Botons',         preco: 7.00, foto: '/uploads/produtos/boton-kit.svg',
-        descricao: 'Trio de botons coloridos do EAC.', ativo: true, estoque: 30 }
+        descricao: 'Trio de botons coloridos do EAC.', ativo: true, estoque: 30 },
+
+      // ----- Teste (uso interno, nao remover sem avisar a equipe) -----
+      { id: 12, categoria: 'teste',     nome: 'Produto TOP',          preco: 1.00, foto: '/uploads/produtos/sirene.svg',
+        descricao: 'Produto de teste.', ativo: true, estoque: 30 }
     ],
     entregadores: [
       { id: 1, nome: 'Equipe Trote 1' },
@@ -139,6 +144,16 @@ function aplicarMigracoes(dados) {
         alterou = true;
       }
     });
+
+    // Insere o produto de teste (id 12) em bancos criados antes dele existir.
+    if (!dados.produtos.some(p => p.id === 12)) {
+      dados.produtos.push({
+        id: 12, categoria: 'teste', nome: 'Produto TOP', preco: 1.00,
+        foto: '/uploads/produtos/sirene.svg', descricao: 'Produto de teste.',
+        ativo: true, estoque: 30
+      });
+      alterou = true;
+    }
   }
 
   if (alterou) salvar(dados);
