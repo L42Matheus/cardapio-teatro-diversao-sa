@@ -385,11 +385,6 @@ function iniciarPollingStatus(ticket) {
   }, 2000);
 }
 
-async function simularPagamento() {
-  if (!ticketAtual) return;
-  await fetch(`/api/pedidos/${ticketAtual}/simular-pagamento`, { method: 'POST' });
-}
-
 function legendaStatus(status) {
   const legendas = {
     pendente_pagamento: 'aguardando pagamento',

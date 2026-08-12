@@ -1,24 +1,50 @@
 // pix.js
-// Camada de integracao com a API Pix do Banco Inter.
+// Integracao real com a API Pix da Efi (efipay.com.br), via SDK oficial
+// sdk-node-apis-efi. Ambiente controlado por EFI_SANDBOX (homologacao/producao).
 //
-// Este arquivo esta MOCKADO (simulado) para o prototipo: gera um txid e um
-// "copia e cola" falsos, sem chamar o Inter de verdade. Quando for integrar
-// com a API real, e so trocar a funcao criarCobrancaPix por uma chamada
-// HTTP autenticada (mTLS + OAuth2) para o endpoint de cobranca Pix do Inter,
-// e o webhook.js abaixo passa a validar a assinatura/token que o Inter envia.
+// Requer no .env: EFI_SANDBOX, EFI_CLIENT_ID, EFI_CLIENT_SECRET, EFI_PIX_KEY
+// e o certificado .p12, de uma das duas formas:
+//   - EFI_CERT_PATH: caminho local do arquivo .p12 (uso local/dev)
+//   - EFI_CERT_BASE64: conteudo do .p12 codificado em base64 (uso em
+//     hospedagens como Railway, onde nao da pra montar um arquivo facilmente)
+// Se as duas estiverem definidas, EFI_CERT_BASE64 tem prioridade.
 
-function criarCobrancaPix(pedido) {
-  // Em produção: POST https://cdpj.partners.bancointer.com.br/pix/v2/cob
-  // usando certificado mTLS + client credentials, passando valor, txid e
-  // uma chave Pix da sua conta Inter. O retorno real traz o "pixCopiaECola"
-  // e a imagem do QR Code (base64).
+const EfiPay = require('sdk-node-apis-efi');
+
+const certificadoConfig = process.env.EFI_CERT_BASE64
+  ? { certificate: process.env.EFI_CERT_BASE64, cert_base64: true }
+  : { certificate: process.env.EFI_CERT_PATH };
+
+const efipay = new EfiPay({
+  sandbox: process.env.EFI_SANDBOX !== 'false',
+  client_id: process.env.EFI_CLIENT_ID,
+  client_secret: process.env.EFI_CLIENT_SECRET,
+  ...certificadoConfig
+});
+
+const EXPIRACAO_SEGUNDOS = 15 * 60; // 15 minutos
+
+// Cria a cobranca Pix na Efi usando o txid ja gerado pelo pedido (db.js) e
+// busca o QR Code + "copia e cola" prontos para exibir ao comprador.
+async function criarCobrancaPix(pedido) {
+  const cobranca = await efipay.pixCreateCharge(
+    { txid: pedido.pixTxid },
+    {
+      calendario: { expiracao: EXPIRACAO_SEGUNDOS },
+      valor: { original: Number(pedido.valor).toFixed(2) },
+      chave: process.env.EFI_PIX_KEY,
+      solicitacaoPagador: `Pedido ${pedido.codigo || pedido.pixTxid}`.slice(0, 140)
+    }
+  );
+
+  const qrcode = await efipay.pixGenerateQRCode({ id: cobranca.loc.id });
+
   return {
-    txid: pedido.pixTxid,
+    txid: cobranca.txid,
     valor: pedido.valor,
-    // Nesta simulacao, o "copia e cola" e so um texto de exemplo
-    copiaECola: `00020126MOCKPIX-${pedido.pixTxid}-VALOR-${pedido.valor}5204000053039865802BR`,
-    qrCodeBase64: null, // no prototipo nao geramos imagem real do QR
-    expiraEm: new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 min
+    copiaECola: cobranca.pixCopiaECola,
+    qrCodeBase64: qrcode.imagemQrcode || null,
+    expiraEm: new Date(Date.now() + EXPIRACAO_SEGUNDOS * 1000).toISOString()
   };
 }
 

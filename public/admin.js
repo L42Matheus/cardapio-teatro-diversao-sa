@@ -386,15 +386,20 @@ function renderTodos() {
   corpo.innerHTML = '';
 
   if (lista.length === 0) {
-    corpo.innerHTML = `<tr class="linha-vazia"><td colspan="10" style="text-align:center; color:var(--texto-fraco); padding:20px;">Nenhum pedido encontrado.</td></tr>`;
+    corpo.innerHTML = `<tr class="linha-vazia"><td colspan="11" style="text-align:center; color:var(--texto-fraco); padding:20px;">Nenhum pedido encontrado.</td></tr>`;
     return;
   }
+
+  const ehAdmin = sessao && sessao.papel === 'admin';
 
   lista.forEach(p => {
     const tr = document.createElement('tr');
     const compradorHTML = p.anonimo
       ? `<span style="color:var(--texto-fraco); font-weight:600;">Anônimo</span><br><small>${p.contato || ''}</small>`
       : `${p.nomeComprador || '-'}<br><small>${p.contato || ''}</small>`;
+    const acaoHTML = (ehAdmin && p.status === 'pendente_pagamento')
+      ? `<button class="secundario pequeno" onclick="simularPagamentoAdmin(${p.id})">Marcar como pago</button>`
+      : '<span style="color:var(--texto-fraco);">—</span>';
 
     tr.innerHTML = `
       <td data-label="Ticket"><strong>${p.codigo || '#' + p.id}</strong></td>
@@ -407,9 +412,21 @@ function renderTodos() {
       <td data-label="Comprador">${compradorHTML}</td>
       <td data-label="Mensagem">${mensagemCurta(p.mensagemEspecial)}</td>
       <td data-label="Valor">${formatarBRL(p.valor)}</td>
+      <td data-label="Ação">${acaoHTML}</td>
     `;
     corpo.appendChild(tr);
   });
+}
+
+// Marca manualmente um pedido como pago (admin), sem depender do webhook da
+// Efi — usar so pra corrigir um pedido cujo pagamento caiu mas o aviso nao
+// chegou, ou pra teste.
+async function simularPagamentoAdmin(pedidoId) {
+  if (!confirm('Marcar este pedido como pago manualmente, sem confirmação da Efí?')) return;
+  const res = await apiAdmin(`/pedidos/${pedidoId}/simular-pagamento`, { method: 'POST' });
+  const dados = await res.json();
+  if (!res.ok) { alert(dados.erro || 'Erro ao marcar como pago.'); return; }
+  carregarPedidos();
 }
 
 // ---------- Pendentes ----------

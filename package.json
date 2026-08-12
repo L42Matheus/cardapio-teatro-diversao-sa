@@ -1,7 +1,7 @@
 {
   "name": "evento-marketplace-pix",
   "version": "1.0.0",
-  "description": "Prototipo: marketplace de evento com pagamento Pix (Banco Inter) e controle de pedidos/entregadores",
+  "description": "Prototipo: marketplace de evento com pagamento Pix (Efi) e controle de pedidos/entregadores",
   "main": "server.js",
   "type": "commonjs",
   "engines": {
@@ -11,6 +11,8 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2",
+    "sdk-node-apis-efi": "^2.0.1"
   }
 }

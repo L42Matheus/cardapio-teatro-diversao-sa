@@ -205,6 +205,13 @@ function retomarPedidos() {
 
 // ---- Pedidos ----
 
+// Gera o txid usado na cobranca Pix (Efi). Precisa ser alfanumerico puro,
+// entre 26 e 35 caracteres (sem hifen) — por isso nao reaproveita o "codigo"
+// publico (que tem hifen) diretamente.
+function gerarPixTxid() {
+  return crypto.randomBytes(20).toString('hex').slice(0, 32);
+}
+
 // Gera um código público curto, tipo "EAC-XK7B", para o comprador consultar
 // o pedido. Evita usar o id sequencial (1, 2, 3...) que qualquer um adivinha.
 // Sem caracteres ambíguos (0/O, 1/I) para ficar fácil de ditar por voz.
@@ -244,7 +251,7 @@ function criarPedidosMultiplos({ produtoId, nomeComprador, contato, destinatario
   }
 
   const codigo = gerarCodigoPedido(dados);
-  const pixTxid = `TXID-${codigo.replace('EAC-', '')}-${Date.now()}`;
+  const pixTxid = gerarPixTxid();
   const criadoEm = new Date().toISOString();
 
   const pedidos = destinatarios.map((destinatario, indice) => {

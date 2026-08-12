@@ -32,7 +32,7 @@ router.get('/status', (req, res) => {
 });
 
 // POST /api/pedidos -> cria um novo pedido e gera a cobranca Pix
-router.post('/pedidos', (req, res) => {
+router.post('/pedidos', async (req, res) => {
   const { produtoId, nomeComprador, contato, nomeDestinatario, equipeDestinatario } = req.body;
   const destinatarios = Array.isArray(req.body.destinatarios)
     ? req.body.destinatarios
@@ -70,7 +70,7 @@ router.post('/pedidos', (req, res) => {
     const pedidoBase = destinatarios
       ? { codigo: grupo.codigo, pixTxid: grupo.pixTxid, valor: grupo.valor }
       : grupo.pedidos[0];
-    const cobranca = criarCobrancaPix(pedidoBase); // chamada (mock) a API Pix do Inter
+    const cobranca = await criarCobrancaPix(pedidoBase); // chamada real a API Pix da Efi
     return res.status(201).json({
       ticket: pedidoBase.codigo, // código público, ex: EAC-XK7B
       id: grupo.pedidos[0].id,   // id interno (uso do admin), NÃO usar como consulta pública
@@ -97,6 +97,12 @@ router.post('/pedidos', (req, res) => {
       return res.status(400).json({ erro: 'Produto invalido ou indisponivel.' });
     }
     console.error(err);
+    // Erro vindo da Efi (certificado, rede, credenciais) — o pedido ja foi
+    // salvo no banco (status pendente_pagamento), mas sem cobranca Pix valida.
+    // NOTA: nao ha rollback automatico de estoque/pedido neste prototipo.
+    if (err.name === 'EfiPayError' || err.response || err.isAxiosError) {
+      return res.status(502).json({ erro: 'Nao foi possivel gerar a cobranca Pix agora. Tente novamente em instantes.' });
+    }
     return res.status(500).json({ erro: 'Erro ao criar pedido.' });
   }
 });
@@ -137,21 +143,6 @@ router.get('/pedidos/:ticket', (req, res) => {
       status: p.status
     }))
   });
-});
-
-// POST /api/pedidos/:ticket/simular-pagamento
-// Endpoint SOMENTE PARA DEMONSTRACAO — simula o webhook do Inter chegando.
-// Remover/desativar quando integrar a API real do Pix.
-router.post('/pedidos/:ticket/simular-pagamento', (req, res) => {
-  const pedido = acharPorTicket(req.params.ticket);
-  if (!pedido) return res.status(404).json({ erro: 'Pedido nao encontrado.' });
-
-  try {
-    const atualizado = db.atualizarStatusPorTxid(pedido.pixTxid, 'pago');
-    res.json({ ticket: atualizado.codigo || String(atualizado.id), status: atualizado.status });
-  } catch (err) {
-    res.status(500).json({ erro: 'Erro ao simular pagamento.' });
-  }
 });
 
 module.exports = router;

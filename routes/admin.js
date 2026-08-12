@@ -241,4 +241,19 @@ router.post('/pedidos/:id/entregar', (req, res) => {
   }
 });
 
+// POST /api/admin/pedidos/:id/simular-pagamento -> marca manualmente como
+// pago, sem passar pela Efi. Somente admin (nao equipe). Uso: corrigir um
+// pedido cujo pagamento caiu mas o webhook nao chegou, ou testar o fluxo.
+router.post('/pedidos/:id/simular-pagamento', exigirAdmin, (req, res) => {
+  const pedido = db.buscarPedido(req.params.id);
+  if (!pedido) return res.status(404).json({ erro: 'Pedido nao encontrado.' });
+
+  try {
+    const atualizado = db.atualizarStatusPorTxid(pedido.pixTxid, 'pago');
+    res.json(atualizado);
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao marcar pedido como pago.' });
+  }
+});
+
 module.exports = router;
