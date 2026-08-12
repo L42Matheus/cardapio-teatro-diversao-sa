@@ -12,6 +12,15 @@
 const EfiPay = require('sdk-node-apis-efi');
 
 const EXPIRACAO_SEGUNDOS = 15 * 60; // 15 minutos
+const TIMEOUT_EFI_MS = 25 * 1000; // 25s — evita deixar o comprador esperando pra sempre se a Efi travar
+
+function comTimeout(promise, ms, mensagem) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(mensagem)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
 
 // O construtor do EfiPay lanca erro sincrono se faltar client_id/secret.
 // Por isso a instancia e criada sob demanda (na primeira cobranca), e nao
@@ -37,17 +46,25 @@ function getEfiPay() {
 // Cria a cobranca Pix na Efi usando o txid ja gerado pelo pedido (db.js) e
 // busca o QR Code + "copia e cola" prontos para exibir ao comprador.
 async function criarCobrancaPix(pedido) {
-  const cobranca = await getEfiPay().pixCreateCharge(
-    { txid: pedido.pixTxid },
-    {
-      calendario: { expiracao: EXPIRACAO_SEGUNDOS },
-      valor: { original: Number(pedido.valor).toFixed(2) },
-      chave: process.env.EFI_PIX_KEY,
-      solicitacaoPagador: `Pedido ${pedido.codigo || pedido.pixTxid}`.slice(0, 140)
-    }
+  const cobranca = await comTimeout(
+    getEfiPay().pixCreateCharge(
+      { txid: pedido.pixTxid },
+      {
+        calendario: { expiracao: EXPIRACAO_SEGUNDOS },
+        valor: { original: Number(pedido.valor).toFixed(2) },
+        chave: process.env.EFI_PIX_KEY,
+        solicitacaoPagador: `Pedido ${pedido.codigo || pedido.pixTxid}`.slice(0, 140)
+      }
+    ),
+    TIMEOUT_EFI_MS,
+    'EFI_TIMEOUT'
   );
 
-  const qrcode = await getEfiPay().pixGenerateQRCode({ id: cobranca.loc.id });
+  const qrcode = await comTimeout(
+    getEfiPay().pixGenerateQRCode({ id: cobranca.loc.id }),
+    TIMEOUT_EFI_MS,
+    'EFI_TIMEOUT'
+  );
 
   return {
     txid: cobranca.txid,

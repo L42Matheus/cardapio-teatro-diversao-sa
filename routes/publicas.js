@@ -97,9 +97,13 @@ router.post('/pedidos', async (req, res) => {
       return res.status(400).json({ erro: 'Produto invalido ou indisponivel.' });
     }
     console.error(err);
-    // Erro vindo da Efi (certificado, rede, credenciais) — o pedido ja foi
-    // salvo no banco (status pendente_pagamento), mas sem cobranca Pix valida.
-    // NOTA: nao ha rollback automatico de estoque/pedido neste prototipo.
+    // Erro vindo da Efi (certificado, rede, credenciais, timeout) — o pedido
+    // ja foi salvo no banco (status pendente_pagamento), mas sem cobranca
+    // Pix valida. NOTA: nao ha rollback automatico de estoque/pedido neste
+    // prototipo.
+    if (err.message === 'EFI_TIMEOUT') {
+      return res.status(504).json({ erro: 'A Efi esta demorando para responder. Tente novamente em instantes.' });
+    }
     if (err.name === 'EfiPayError' || err.response || err.isAxiosError) {
       return res.status(502).json({ erro: 'Nao foi possivel gerar a cobranca Pix agora. Tente novamente em instantes.' });
     }
