@@ -22,6 +22,13 @@ function formatarHora(iso) {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+function formatarDataHora(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const data = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return `${data} ${formatarHora(iso)}`;
+}
+
 function statusPedido(status) {
   const nomes = {
     pendente_pagamento: 'Aguardando Pix',
@@ -188,6 +195,7 @@ async function mostrarPainel() {
     `<a href="#" onclick="event.preventDefault(); sair();" style="margin-left:8px; font-size:0.8rem;">sair</a>`;
   // Aba "Estoque" so aparece para admin.
   document.getElementById('aba-estoque').classList.toggle('oculto', !ehAdmin);
+  document.getElementById('aba-relatorio').classList.toggle('oculto', !ehAdmin);
   configurarAbas();
 
   await carregarCategorias();
@@ -347,6 +355,77 @@ function renderResumo(pedidos) {
       <div class="valor">${formatarBRL(arrecadado)}</div>
     </div>
   `;
+}
+
+// ---------- Relatório de valores compensados ----------
+// "Compensado" = pedido com pagamento confirmado (pago, a entregar ou
+// entregue). "Origem" distingue confirmacao real da Efi (via webhook,
+// com endToEndId) de uma marcacao manual do admin (sem garantia de que o
+// dinheiro caiu de verdade).
+function horarioConfirmacaoPedido(p) {
+  return (p.pagamento && p.pagamento.horario) || p.atualizadoEm;
+}
+
+function gerarRelatorioCompensados() {
+  const corpo = document.getElementById('corpo-relatorio');
+  const resumoBox = document.getElementById('relatorio-resumo');
+  if (!corpo || !resumoBox) return;
+
+  const compensados = pedidosCache
+    .filter(p => p.status !== 'pendente_pagamento' && p.status !== 'cancelado')
+    .sort((a, b) => new Date(horarioConfirmacaoPedido(b)) - new Date(horarioConfirmacaoPedido(a)));
+
+  const total = compensados.reduce((soma, p) => soma + Number(p.valor || 0), 0);
+  const viaWebhook = compensados.filter(p => p.pagamento && p.pagamento.origem === 'webhook').length;
+  const viaManual = compensados.filter(p => p.pagamento && p.pagamento.origem === 'manual').length;
+
+  resumoBox.classList.remove('oculto');
+  resumoBox.innerHTML = `
+    <div class="caixa azul">
+      <div class="label">Pedidos compensados</div>
+      <div class="valor">${compensados.length}</div>
+    </div>
+    <div class="caixa verde">
+      <div class="label">Total confirmado</div>
+      <div class="valor">${formatarBRL(total)}</div>
+    </div>
+    <div class="caixa">
+      <div class="label">Via Efí (webhook)</div>
+      <div class="valor">${viaWebhook}</div>
+    </div>
+    <div class="caixa">
+      <div class="label">Marcado manual</div>
+      <div class="valor">${viaManual}</div>
+    </div>
+  `;
+
+  corpo.innerHTML = '';
+  if (compensados.length === 0) {
+    corpo.innerHTML = `<tr class="linha-vazia"><td colspan="7" style="text-align:center; color:var(--texto-fraco); padding:20px;">Nenhum pedido compensado ainda.</td></tr>`;
+    return;
+  }
+
+  compensados.forEach(p => {
+    const pagamento = p.pagamento || null;
+    const origemHTML = !pagamento
+      ? '<span style="color:var(--texto-fraco);">— (anterior ao relatório)</span>'
+      : pagamento.origem === 'webhook'
+        ? '<span class="pill-info">✅ Efí (webhook)</span>'
+        : '<span class="pill-info" style="background:#eee; color:#555;">✋ Manual (admin)</span>';
+    const valorExibido = pagamento && pagamento.valorConfirmado != null ? pagamento.valorConfirmado : p.valor;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Ticket"><strong>${p.codigo || '#' + p.id}</strong></td>
+      <td data-label="Produto">${p.produtoNome}</td>
+      <td data-label="Valor">${formatarBRL(valorExibido)}</td>
+      <td data-label="Confirmado em">${formatarDataHora(horarioConfirmacaoPedido(p))}</td>
+      <td data-label="Origem">${origemHTML}</td>
+      <td data-label="End-to-End ID (Efi)"><small>${(pagamento && pagamento.endToEndId) || '—'}</small></td>
+      <td data-label="Status atual">${statusPedido(p.status)}</td>
+    `;
+    corpo.appendChild(tr);
+  });
 }
 
 // ---------- Filtros e ordenação ----------

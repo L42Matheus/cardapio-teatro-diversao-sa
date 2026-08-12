@@ -46,7 +46,13 @@ router.post('/pix', (req, res) => {
       continue;
     }
     try {
-      db.atualizarStatusPorTxid(evento.txid, 'pago');
+      db.atualizarStatusPorTxid(evento.txid, 'pago', {
+        origem: 'webhook',
+        endToEndId: evento.endToEndId,
+        valor: evento.valor,
+        horario: evento.horario,
+        infoPagador: evento.infoPagador
+      });
       resultados.push({ txid: evento.txid, ok: true });
     } catch (err) {
       resultados.push({ txid: evento.txid, ok: false, motivo: err.message });

@@ -345,7 +345,11 @@ function listarPedidos() {
   return dados.pedidos;
 }
 
-function atualizarStatusPorTxid(txid, novoStatus) {
+// detalhesPagamento (opcional): dados extras que a Efi manda no webhook
+// (endToEndId, valor confirmado, horario, infoPagador) ou 'manual' quando
+// o admin marca como pago pela mao. Usado no relatorio de valores
+// compensados (aba Relatorio do painel admin).
+function atualizarStatusPorTxid(txid, novoStatus, detalhesPagamento) {
   const dados = carregar();
   const pedidos = dados.pedidos.filter(p => p.pixTxid === txid);
   if (pedidos.length === 0) throw new Error('PEDIDO_NAO_ENCONTRADO');
@@ -353,6 +357,15 @@ function atualizarStatusPorTxid(txid, novoStatus) {
   pedidos.forEach(pedido => {
     pedido.status = novoStatus;
     pedido.atualizadoEm = atualizadoEm;
+    if (detalhesPagamento) {
+      pedido.pagamento = {
+        origem: detalhesPagamento.origem || 'webhook',
+        endToEndId: detalhesPagamento.endToEndId || null,
+        valorConfirmado: detalhesPagamento.valor != null ? Number(detalhesPagamento.valor) : null,
+        horario: detalhesPagamento.horario || atualizadoEm,
+        infoPagador: detalhesPagamento.infoPagador || null
+      };
+    }
   });
   salvar(dados);
   return pedidos[0];

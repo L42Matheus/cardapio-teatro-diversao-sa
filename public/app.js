@@ -349,6 +349,25 @@ async function enviarPedido() {
   iniciarPollingStatus(dados.ticket);
 }
 
+async function copiarPixCopiaECola() {
+  const campo = document.getElementById('pix-copiacola');
+  const texto = campo.value;
+  const btn = document.getElementById('btn-copiar-pix');
+
+  try {
+    await navigator.clipboard.writeText(texto);
+  } catch (err) {
+    // Fallback para navegadores sem suporte a Clipboard API (ex: contexto sem HTTPS)
+    campo.select();
+    campo.setSelectionRange(0, texto.length);
+    document.execCommand('copy');
+  }
+
+  const textoOriginal = btn.textContent;
+  btn.textContent = '✅ Copiado!';
+  setTimeout(() => { btn.textContent = textoOriginal; }, 2000);
+}
+
 function renderizarItensPix(itens) {
   const box = document.getElementById('pix-itens');
   if (!box) return;

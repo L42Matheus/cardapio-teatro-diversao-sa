@@ -46,6 +46,7 @@
       <button type="button" class="aba" data-aba="entregues">✅ Entregues <span id="aba-contador-entregues"></span></button>
       <button type="button" class="aba" data-aba="estoque" id="aba-estoque">📦 Estoque</button>
       <button type="button" class="aba" data-aba="resumo">📊 Resumo</button>
+      <button type="button" class="aba" data-aba="relatorio" id="aba-relatorio">💰 Relatório</button>
     </nav>
 
     <section id="tab-resumo" class="tab-conteudo oculto">
@@ -185,6 +186,39 @@
             </tr>
           </thead>
           <tbody id="corpo-estoque"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tab-relatorio" class="tab-conteudo card oculto" data-somente-admin="true">
+      <div class="admin-section-head">
+        <h2>💰 Relatório de valores compensados</h2>
+        <button class="destaque" onclick="gerarRelatorioCompensados()">Gerar relatório</button>
+      </div>
+      <p style="color:var(--texto-fraco); font-size:0.85rem;">
+        Mostra os pedidos com pagamento confirmado (pago, a entregar ou entregue).
+        "Origem" indica se a confirmação veio de verdade da Efi (webhook) ou foi
+        marcada manualmente pelo admin.
+      </p>
+
+      <div id="relatorio-resumo" class="resumo oculto" style="margin:14px 0;"></div>
+
+      <div class="tabela-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ticket</th>
+              <th>Produto</th>
+              <th>Valor</th>
+              <th>Confirmado em</th>
+              <th>Origem</th>
+              <th>End-to-End ID (Efi)</th>
+              <th>Status atual</th>
+            </tr>
+          </thead>
+          <tbody id="corpo-relatorio">
+            <tr class="linha-vazia"><td colspan="7" style="text-align:center; color:var(--texto-fraco); padding:20px;">Clique em "Gerar relatório" para carregar.</td></tr>
+          </tbody>
         </table>
       </div>
     </section>

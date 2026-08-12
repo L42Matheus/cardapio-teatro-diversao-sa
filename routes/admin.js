@@ -249,7 +249,10 @@ router.post('/pedidos/:id/simular-pagamento', exigirAdmin, (req, res) => {
   if (!pedido) return res.status(404).json({ erro: 'Pedido nao encontrado.' });
 
   try {
-    const atualizado = db.atualizarStatusPorTxid(pedido.pixTxid, 'pago');
+    const atualizado = db.atualizarStatusPorTxid(pedido.pixTxid, 'pago', {
+      origem: 'manual',
+      valor: pedido.valor
+    });
     res.json(atualizado);
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao marcar pedido como pago.' });
