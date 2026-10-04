@@ -16,6 +16,13 @@ const pool = new Pool({
   ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false
 });
 
+// Conexao ociosa que cai (banco reiniciou, oscilacao de rede no Railway)
+// emite 'error' no pool. Sem este listener o Node derruba o processo; com
+// ele, o pool descarta a conexao e abre outra na proxima query.
+pool.on('error', err => {
+  console.error('Conexao com o banco caiu (o pool vai reconectar):', err.message);
+});
+
 async function comTransacao(fn) {
   const client = await pool.connect();
   try {

@@ -7,8 +7,7 @@
 // (criado pelo admin em /usuarios) tem acesso a tudo, EXCETO criar/remover
 // usuarios e o botao do panico.
 
-const express = require('express');
-const router = express.Router();
+const router = require('./router')();
 const crypto = require('crypto');
 const db = require('../db');
 

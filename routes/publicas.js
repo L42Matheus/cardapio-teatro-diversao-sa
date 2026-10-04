@@ -2,8 +2,7 @@
 // Rotas que o site do comprador usa: ver produtos, criar pedido,
 // consultar status pelo ticket (numero do pedido) e ver estoque restante.
 
-const express = require('express');
-const router = express.Router();
+const router = require('./router')();
 const db = require('../db');
 const { criarCobrancaPix } = require('../pix');
 
@@ -119,7 +118,7 @@ async function acharPorTicket(param) {
   if (bruto.toUpperCase().startsWith('EAC-')) {
     return db.buscarPedidoPorCodigo(bruto);
   }
-  if (/^\d+$/.test(bruto)) {
+  if (/^\d{1,9}$/.test(bruto)) { // cabe no INTEGER do Postgres
     return db.buscarPedido(bruto);
   }
   return db.buscarPedidoPorCodigo(bruto);

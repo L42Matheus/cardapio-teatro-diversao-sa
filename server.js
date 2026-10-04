@@ -25,6 +25,16 @@ app.use('/api', rotasPublicas);
 app.use('/api/admin', rotasAdmin);
 app.use('/webhook', rotaWebhook); // ex: /webhook/pix
 
+// Erro inesperado em qualquer rota (banco fora, entrada estranha...): loga e
+// responde 500 em vez de derrubar o servidor. JSON malformado no corpo vem
+// do express.json() com status 400.
+app.use((err, req, res, next) => {
+  const status = err.status || err.statusCode || 500;
+  if (status >= 500) console.error(`Erro em ${req.method} ${req.originalUrl}:`, err.message);
+  if (res.headersSent) return next(err);
+  res.status(status).json({ erro: status >= 500 ? 'Erro interno. Tente novamente em instantes.' : 'Requisicao invalida.' });
+});
+
 // O banco precisa estar pronto (tabelas criadas + seed) antes de aceitar
 // requisicoes — praticamente toda rota depende dele. Se DATABASE_URL nao
 // estiver configurada ou a conexao falhar, falha rapido com log claro em

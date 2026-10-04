@@ -22,8 +22,7 @@
 // Payload esperado (formato real da Efi):
 // { "pix": [ { "txid": "...", "valor": "...", "endToEndId": "...", ... } ] }
 
-const express = require('express');
-const router = express.Router();
+const router = require('./router')();
 const db = require('../db');
 
 router.post('/pix', async (req, res) => {
