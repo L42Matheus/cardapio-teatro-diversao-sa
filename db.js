@@ -38,7 +38,7 @@ function hashSenha(senha) {
 // Categorias oferecidas na loja do EAC. A ordem aqui define a ordem das abas
 // que aparecem na tela de vendas. Nao fica no banco — e so configuracao fixa.
 const CATEGORIAS = [
-  { id: 'rosa',      nome: 'Rosas',      emoji: '🌹' },
+  { id: 'rosa',      nome: 'Rosas',      emoji: '🤍' },
   { id: 'boton',     nome: 'Botons',     emoji: '📛' },
   { id: 'trote',     nome: 'Trotes',     emoji: '💌' },
   { id: 'prisao',    nome: 'Prisão',     emoji: '⛓️' },
@@ -57,8 +57,8 @@ const PRODUTOS_SEED = [
     descricao: 'A pessoa escolhida recebe o trote do celular do vovô.' },
 
   // ----- Rosas -----
-  { id: 1,  categoria: 'rosa',      nome: 'Rosa com Chocolate',   preco: 4.00, foto: '/uploads/produtos/rosa.webp',
-    descricao: 'Uma rosa vermelha entregue com carinho para quem você escolher. Ela já vem com um chocolate.' },
+  { id: 1,  categoria: 'rosa',      nome: 'Doce Rosa Branca',      preco: 4.00, foto: '/uploads/produtos/rosa.webp',
+    descricao: 'Uma rosa branca com o cartãozinho "És meu amigo", entregue com carinho para quem você escolher. Ela já vem com um chocolate.' },
 
   // ----- Botons -----
   { id: 5,  categoria: 'boton',     nome: 'Boton EAC',            preco: 3.50, foto: '/uploads/produtos/boton-eac.webp',
@@ -166,8 +166,8 @@ async function iniciarBancoDados() {
   // (7-11). Pedidos guardam produto_nome, entao o historico continua certo.
   await pool.query('DELETE FROM produtos WHERE id IN (2, 3, 4, 6, 7, 8, 9, 10, 11)');
 
-  // Produtos ja existentes que mudaram no seed: Rosa com Chocolate (1) com
-  // foto real, novo nome/descricao e R$ 4,00; botons (5, 13-16) a R$ 3,50,
+  // Produtos ja existentes que mudaram no seed: Doce Rosa Branca (1)
+  // com foto real, novo nome/descricao e R$ 4,00; botons (5, 13-16) a R$ 3,50,
   // o Boton EAC com foto real; Prisao (20) e Prisao de Coordenador (22) com
   // foto propria; e "Prisao de Padre" virou "Prisao do Padre" (21).
   for (const p of PRODUTOS_SEED.filter(p => [1, 5, 13, 14, 15, 16, 20, 21, 22].includes(p.id))) {
