@@ -61,14 +61,10 @@ const PRODUTOS_SEED = [
     descricao: 'Mini apresentação de dança feita para alegrar o encontrista.' },
 
   // ----- Rosas -----
-  { id: 1,  categoria: 'rosa',      nome: 'Rosa Única',           preco: 5.00, foto: '/uploads/produtos/rosa.svg',
-    descricao: 'Uma rosa vermelha entregue com carinho para quem você escolher.' },
-  { id: 2,  categoria: 'rosa',      nome: 'Buquê de 3 Rosas',     preco: 7.00, foto: '/uploads/produtos/buque.svg',
-    descricao: 'Buquê com três rosas para uma surpresa especial.' },
+  { id: 1,  categoria: 'rosa',      nome: 'Rosa com Chocolate',   preco: 5.00, foto: '/uploads/produtos/rosa.webp',
+    descricao: 'Uma rosa vermelha entregue com carinho para quem você escolher. Ela já vem com um chocolate.' },
 
   // ----- Chocolates -----
-  { id: 3,  categoria: 'chocolate', nome: 'Chocolate com Rosa',   preco: 7.00, foto: '/uploads/produtos/chocolate.svg',
-    descricao: 'Uma barra de chocolate acompanhada de uma rosa.' },
   { id: 4,  categoria: 'chocolate', nome: 'Chocolate Coração',    preco: 5.00, foto: '/uploads/produtos/chocolate-coracao.svg',
     descricao: 'Chocolate em formato de coração para adoçar o encontro.' },
 
@@ -158,6 +154,18 @@ async function iniciarBancoDados() {
       [p.id, p.categoria, p.nome, p.preco, p.foto, p.descricao]
     );
   }
+
+  // Produtos que sairam do cardapio: Buque de 3 Rosas (2) e Chocolate com
+  // Rosa (3). Pedidos guardam produto_nome, entao o historico continua certo.
+  await pool.query('DELETE FROM produtos WHERE id IN (2, 3)');
+
+  // Rosa Unica virou "Rosa com Chocolate", com foto real e nova descricao.
+  const rosa = PRODUTOS_SEED.find(p => p.id === 1);
+  await pool.query(
+    `UPDATE produtos SET nome = $1, foto = $2, descricao = $3
+     WHERE id = 1 AND (nome IS DISTINCT FROM $1 OR foto IS DISTINCT FROM $2 OR descricao IS DISTINCT FROM $3)`,
+    [rosa.nome, rosa.foto, rosa.descricao]
+  );
 
   const entregadoresExistentes = await pool.query('SELECT COUNT(*)::int AS total FROM entregadores');
   if (entregadoresExistentes.rows[0].total === 0) {
