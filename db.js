@@ -56,7 +56,7 @@ const PRODUTOS_SEED = [
     descricao: 'A pessoa escolhida recebe o trote do celular do vovô.' },
 
   // ----- Rosas -----
-  { id: 1,  categoria: 'rosa',      nome: 'Rosa com Chocolate',   preco: 5.00, foto: '/uploads/produtos/rosa.webp',
+  { id: 1,  categoria: 'rosa',      nome: 'Rosa com Chocolate',   preco: 4.00, foto: '/uploads/produtos/rosa.webp',
     descricao: 'Uma rosa vermelha entregue com carinho para quem você escolher. Ela já vem com um chocolate.' },
 
   // ----- Botons -----
@@ -158,8 +158,8 @@ async function iniciarBancoDados() {
   await pool.query('DELETE FROM produtos WHERE id IN (2, 3, 4, 6, 7, 8, 9, 10, 11)');
 
   // Produtos ja existentes que mudaram no seed: Rosa com Chocolate (1) com
-  // foto real e novo nome/descricao; botons (5, 13-16) a R$ 3,50, e o
-  // Boton EAC com foto real.
+  // foto real, novo nome/descricao e R$ 4,00; botons (5, 13-16) a R$ 3,50,
+  // e o Boton EAC com foto real.
   for (const p of PRODUTOS_SEED.filter(p => [1, 5, 13, 14, 15, 16].includes(p.id))) {
     await pool.query(
       `UPDATE produtos SET nome = $2, foto = $3, descricao = $4, preco = $5
