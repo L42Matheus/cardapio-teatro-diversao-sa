@@ -41,6 +41,7 @@ const CATEGORIAS = [
   { id: 'rosa',      nome: 'Rosas',      emoji: '🌹' },
   { id: 'boton',     nome: 'Botons',     emoji: '📛' },
   { id: 'trote',     nome: 'Trotes',     emoji: '💌' },
+  { id: 'prisao',    nome: 'Prisão',     emoji: '⛓️' },
   { id: 'teste',     nome: 'Teste',      emoji: '🚨' }
 ];
 
@@ -70,6 +71,14 @@ const PRODUTOS_SEED = [
     descricao: 'Santo Antônio, padroeiro da paróquia, com o Menino Jesus.' },
   { id: 16, categoria: 'boton',     nome: 'Boton São Francisco',  preco: 3.50, foto: '/uploads/produtos/boton-sao-francisco.webp',
     descricao: 'São Francisco de Assis com os passarinhos.' },
+
+  // ----- Prisao dos Amostradinhos -----
+  { id: 20, categoria: 'prisao',    nome: 'Prisão',                  preco: 2.00, foto: '/uploads/produtos/prisao-normal.webp',
+    descricao: 'Mande prender alguém na Prisão dos Amostradinhos.' },
+  { id: 21, categoria: 'prisao',    nome: 'Prisão do Padre',         preco: 5.00, foto: '/uploads/produtos/prisao.webp',
+    descricao: 'Mande prender um padre na Prisão dos Amostradinhos.' },
+  { id: 22, categoria: 'prisao',    nome: 'Prisão de Coordenador de Equipe', preco: 5.00, foto: '/uploads/produtos/prisao-coordenador.webp',
+    descricao: 'Mande prender um coordenador de equipe na Prisão dos Amostradinhos.' },
 
   // ----- Teste (uso interno, nao remover sem avisar a equipe) -----
   { id: 12, categoria: 'teste',     nome: 'Produto TOP',          preco: 1.00, foto: '/uploads/produtos/sirene.svg',
@@ -159,8 +168,9 @@ async function iniciarBancoDados() {
 
   // Produtos ja existentes que mudaram no seed: Rosa com Chocolate (1) com
   // foto real, novo nome/descricao e R$ 4,00; botons (5, 13-16) a R$ 3,50,
-  // e o Boton EAC com foto real.
-  for (const p of PRODUTOS_SEED.filter(p => [1, 5, 13, 14, 15, 16].includes(p.id))) {
+  // o Boton EAC com foto real; Prisao (20) e Prisao de Coordenador (22) com
+  // foto propria; e "Prisao de Padre" virou "Prisao do Padre" (21).
+  for (const p of PRODUTOS_SEED.filter(p => [1, 5, 13, 14, 15, 16, 20, 21, 22].includes(p.id))) {
     await pool.query(
       `UPDATE produtos SET nome = $2, foto = $3, descricao = $4, preco = $5
        WHERE id = $1 AND (nome IS DISTINCT FROM $2 OR foto IS DISTINCT FROM $3
