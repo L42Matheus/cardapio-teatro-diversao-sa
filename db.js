@@ -38,41 +38,38 @@ function hashSenha(senha) {
 // Categorias oferecidas na loja do EAC. A ordem aqui define a ordem das abas
 // que aparecem na tela de vendas. Nao fica no banco — e so configuracao fixa.
 const CATEGORIAS = [
-  { id: 'trote',     nome: 'Trotes',     emoji: '💌' },
   { id: 'rosa',      nome: 'Rosas',      emoji: '🌹' },
-  { id: 'chocolate', nome: 'Chocolates', emoji: '🍫' },
   { id: 'boton',     nome: 'Botons',     emoji: '📛' },
+  { id: 'trote',     nome: 'Trotes',     emoji: '💌' },
   { id: 'teste',     nome: 'Teste',      emoji: '🚨' }
 ];
 
 // ---- Setup / seed (roda no boot do servidor) ----
 
 const PRODUTOS_SEED = [
-  // ----- Trotes (carro-chefe — nomes fictícios, ajustar com a equipe) -----
-  { id: 7,  categoria: 'trote',     nome: 'Trote do Anjo da Guarda', preco: 4.00, foto: '/uploads/produtos/trote-anjo.svg',
-    descricao: 'Um "anjinho" surpresa entrega uma mensagem carinhosa.' },
-  { id: 8,  categoria: 'trote',     nome: 'Serenata do Coração',     preco: 5.00, foto: '/uploads/produtos/trote-serenata.svg',
-    descricao: 'A pessoa recebe uma canção ao vivo dos servos.' },
-  { id: 9,  categoria: 'trote',     nome: 'Missão Fraterna',         preco: 3.00, foto: '/uploads/produtos/trote-missao.svg',
-    descricao: 'Um bilhete anônimo com uma oração é entregue à pessoa.' },
-  { id: 10, categoria: 'trote',     nome: 'Abraço em Cristo',        preco: 4.00, foto: '/uploads/produtos/trote-abraco.svg',
-    descricao: 'Um grupo de servos vai até a pessoa entregar um abraço coletivo.' },
-  { id: 11, categoria: 'trote',     nome: 'Dança da Alegria',        preco: 6.00, foto: '/uploads/produtos/trote-danca.svg',
-    descricao: 'Mini apresentação de dança feita para alegrar o encontrista.' },
+  // ----- Trotes (carro-chefe) -----
+  { id: 17, categoria: 'trote',     nome: 'Trote da Xuxa',           preco: 4.00, foto: '/uploads/produtos/trote-xuxa.jpg',
+    descricao: 'A pessoa escolhida recebe o trote da Xuxa.' },
+  { id: 18, categoria: 'trote',     nome: 'Trote Panela de Pressão', preco: 4.00, foto: '/uploads/produtos/trote-panela-de-pressao.webp',
+    descricao: 'A pessoa escolhida recebe o trote da panela de pressão.' },
+  { id: 19, categoria: 'trote',     nome: 'Trote Celular do Vovô',   preco: 4.00, foto: '/uploads/produtos/trote-celular-do-vovo.jpg',
+    descricao: 'A pessoa escolhida recebe o trote do celular do vovô.' },
 
   // ----- Rosas -----
   { id: 1,  categoria: 'rosa',      nome: 'Rosa com Chocolate',   preco: 5.00, foto: '/uploads/produtos/rosa.webp',
     descricao: 'Uma rosa vermelha entregue com carinho para quem você escolher. Ela já vem com um chocolate.' },
 
-  // ----- Chocolates -----
-  { id: 4,  categoria: 'chocolate', nome: 'Chocolate Coração',    preco: 5.00, foto: '/uploads/produtos/chocolate-coracao.svg',
-    descricao: 'Chocolate em formato de coração para adoçar o encontro.' },
-
   // ----- Botons -----
-  { id: 5,  categoria: 'boton',     nome: 'Boton EAC',            preco: 3.00, foto: '/uploads/produtos/boton.svg',
+  { id: 5,  categoria: 'boton',     nome: 'Boton EAC',            preco: 3.50, foto: '/uploads/produtos/boton-eac.webp',
     descricao: 'Boton oficial do EAC Santo Antônio.' },
-  { id: 6,  categoria: 'boton',     nome: 'Kit 3 Botons',         preco: 7.00, foto: '/uploads/produtos/boton-kit.svg',
-    descricao: 'Trio de botons coloridos do EAC.' },
+  { id: 13, categoria: 'boton',     nome: 'Boton Santa Terezinha', preco: 3.50, foto: '/uploads/produtos/boton-santa-terezinha.webp',
+    descricao: 'Santa Terezinha com seu buquê de rosas.' },
+  { id: 14, categoria: 'boton',     nome: 'Boton Santa Clara',    preco: 3.50, foto: '/uploads/produtos/boton-santa-clara.webp',
+    descricao: 'Santa Clara com o ostensório.' },
+  { id: 15, categoria: 'boton',     nome: 'Boton Santo Antônio',  preco: 3.50, foto: '/uploads/produtos/boton-santo-antonio.webp',
+    descricao: 'Santo Antônio, padroeiro da paróquia, com o Menino Jesus.' },
+  { id: 16, categoria: 'boton',     nome: 'Boton São Francisco',  preco: 3.50, foto: '/uploads/produtos/boton-sao-francisco.webp',
+    descricao: 'São Francisco de Assis com os passarinhos.' },
 
   // ----- Teste (uso interno, nao remover sem avisar a equipe) -----
   { id: 12, categoria: 'teste',     nome: 'Produto TOP',          preco: 1.00, foto: '/uploads/produtos/sirene.svg',
@@ -155,17 +152,22 @@ async function iniciarBancoDados() {
     );
   }
 
-  // Produtos que sairam do cardapio: Buque de 3 Rosas (2) e Chocolate com
-  // Rosa (3). Pedidos guardam produto_nome, entao o historico continua certo.
-  await pool.query('DELETE FROM produtos WHERE id IN (2, 3)');
+  // Produtos que sairam do cardapio: Buque de 3 Rosas (2), Chocolate com
+  // Rosa (3), Chocolate Coracao (4), Kit 3 Botons (6) e os trotes de exemplo
+  // (7-11). Pedidos guardam produto_nome, entao o historico continua certo.
+  await pool.query('DELETE FROM produtos WHERE id IN (2, 3, 4, 6, 7, 8, 9, 10, 11)');
 
-  // Rosa Unica virou "Rosa com Chocolate", com foto real e nova descricao.
-  const rosa = PRODUTOS_SEED.find(p => p.id === 1);
-  await pool.query(
-    `UPDATE produtos SET nome = $1, foto = $2, descricao = $3
-     WHERE id = 1 AND (nome IS DISTINCT FROM $1 OR foto IS DISTINCT FROM $2 OR descricao IS DISTINCT FROM $3)`,
-    [rosa.nome, rosa.foto, rosa.descricao]
-  );
+  // Produtos ja existentes que mudaram no seed: Rosa com Chocolate (1) com
+  // foto real e novo nome/descricao; botons (5, 13-16) a R$ 3,50, e o
+  // Boton EAC com foto real.
+  for (const p of PRODUTOS_SEED.filter(p => [1, 5, 13, 14, 15, 16].includes(p.id))) {
+    await pool.query(
+      `UPDATE produtos SET nome = $2, foto = $3, descricao = $4, preco = $5
+       WHERE id = $1 AND (nome IS DISTINCT FROM $2 OR foto IS DISTINCT FROM $3
+                          OR descricao IS DISTINCT FROM $4 OR preco IS DISTINCT FROM $5)`,
+      [p.id, p.nome, p.foto, p.descricao, p.preco]
+    );
+  }
 
   const entregadoresExistentes = await pool.query('SELECT COUNT(*)::int AS total FROM entregadores');
   if (entregadoresExistentes.rows[0].total === 0) {
@@ -244,7 +246,11 @@ function sanitizarUsuario(row) {
 // ---- Produtos ----
 
 async function listarProdutosAtivos() {
-  const { rows } = await pool.query('SELECT * FROM produtos WHERE ativo = true ORDER BY id');
+  // Mesma ordem das abas (CATEGORIAS): rosas, botons, trotes e teste.
+  const { rows } = await pool.query(
+    'SELECT * FROM produtos WHERE ativo = true ORDER BY array_position($1::text[], categoria), id',
+    [CATEGORIAS.map(c => c.id)]
+  );
   return rows.map(linhaParaProduto);
 }
 
