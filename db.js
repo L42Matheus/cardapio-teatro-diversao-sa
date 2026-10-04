@@ -271,7 +271,11 @@ async function buscarProduto(id) {
 
 // Lista completa (inclui inativos), usada no painel admin pra editar estoque.
 async function listarProdutosAdmin() {
-  const { rows } = await pool.query('SELECT * FROM produtos ORDER BY id');
+  // Mesma ordem do cardapio (CATEGORIAS).
+  const { rows } = await pool.query(
+    'SELECT * FROM produtos ORDER BY array_position($1::text[], categoria), id',
+    [CATEGORIAS.map(c => c.id)]
+  );
   return rows.map(linhaParaProduto);
 }
 
