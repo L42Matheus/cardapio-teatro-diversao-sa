@@ -177,12 +177,14 @@ async function iniciarBancoDados() {
   // com foto real, novo nome/descricao e R$ 4,00; botons (5, 13-16) a R$ 3,50,
   // o Boton EAC com foto real; Prisao (20) e Prisao de Coordenador (22) com
   // foto propria; e "Prisao de Padre" virou "Prisao do Padre" (21).
+  // O preco NAO e sincronizado aqui: ele e editado pelo admin no painel, e
+  // reescreve-lo a cada boot desfaria a alteracao no proximo deploy.
   for (const p of PRODUTOS_SEED.filter(p => [1, 5, 13, 14, 15, 16, 20, 21, 22].includes(p.id))) {
     await pool.query(
-      `UPDATE produtos SET nome = $2, foto = $3, descricao = $4, preco = $5
+      `UPDATE produtos SET nome = $2, foto = $3, descricao = $4
        WHERE id = $1 AND (nome IS DISTINCT FROM $2 OR foto IS DISTINCT FROM $3
-                          OR descricao IS DISTINCT FROM $4 OR preco IS DISTINCT FROM $5)`,
-      [p.id, p.nome, p.foto, p.descricao, p.preco]
+                          OR descricao IS DISTINCT FROM $4)`,
+      [p.id, p.nome, p.foto, p.descricao]
     );
   }
 
@@ -286,14 +288,52 @@ async function listarProdutosAdmin() {
   return rows.map(linhaParaProduto);
 }
 
-async function atualizarEstoque(produtoId, novoEstoque) {
+function validarEstoque(novoEstoque) {
   const valor = Number(novoEstoque);
-  if (!Number.isInteger(valor) || valor < 0) {
+  if (novoEstoque === '' || novoEstoque === null || !Number.isInteger(valor) || valor < 0 || valor > 100000) {
     throw new Error('ESTOQUE_INVALIDO');
   }
+  return valor;
+}
+
+// Aceita 4.5, "4.50" e "4,50". Arredonda para centavos. A Efi exige no
+// minimo R$ 0,01; o teto evita erro de digitacao tipo 450 em vez de 4,50
+// virar uma cobranca alta sem ninguem perceber.
+const PRECO_MAXIMO = 1000;
+function validarPreco(novoPreco) {
+  const texto = String(novoPreco ?? '').trim().replace(',', '.');
+  const valor = Math.round(Number(texto) * 100) / 100;
+  if (!texto || !Number.isFinite(valor) || valor < 0.01 || valor > PRECO_MAXIMO) {
+    throw new Error('PRECO_INVALIDO');
+  }
+  return valor;
+}
+
+async function atualizarEstoque(produtoId, novoEstoque) {
+  return atualizarProduto(produtoId, { estoque: novoEstoque });
+}
+
+// Atualiza preco e/ou estoque (o que vier). Pedidos ja criados guardam o
+// proprio valor, entao mudar o preco so vale para pedidos novos.
+async function atualizarProduto(produtoId, { preco, estoque } = {}) {
+  const campos = [];
+  const valores = [];
+  if (preco !== undefined) {
+    valores.push(validarPreco(preco));
+    campos.push(`preco = $${valores.length}`);
+  }
+  if (estoque !== undefined) {
+    valores.push(validarEstoque(estoque));
+    campos.push(`estoque = $${valores.length}`);
+  }
+  if (campos.length === 0) throw new Error('NADA_PARA_ATUALIZAR');
+  const id = Number(produtoId);
+  if (!Number.isInteger(id) || id < 1 || id > 2147483647) throw new Error('PRODUTO_INVALIDO');
+
+  valores.push(id);
   const { rows } = await pool.query(
-    'UPDATE produtos SET estoque = $1 WHERE id = $2 RETURNING *',
-    [valor, Number(produtoId)]
+    `UPDATE produtos SET ${campos.join(', ')} WHERE id = $${valores.length} RETURNING *`,
+    valores
   );
   if (!rows[0]) throw new Error('PRODUTO_INVALIDO');
   return linhaParaProduto(rows[0]);
@@ -621,6 +661,7 @@ module.exports = {
   buscarProduto,
   listarProdutosAdmin,
   atualizarEstoque,
+  atualizarProduto,
   statusPedidos,
   pausarPedidos,
   retomarPedidos,

@@ -698,6 +698,9 @@ select.small { width: auto; display: inline-block; padding: 6px 8px; }
   text-align: center;
   padding: 6px 8px;
 }
+.preco-input {
+  width: 90px;
+}
 .estoque-esgotado {
   display: inline-block;
   color: var(--vermelho);
