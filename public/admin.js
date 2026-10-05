@@ -684,16 +684,14 @@ function cardPedidoKanban(p, estado, ehProximo) {
         <span>${formatarBRL(p.valor)}</span>
       </div>
       ${selo}
-      <dl class="kanban-info">
-        <dt>De:</dt>
-        <dd>${comprador || '—'}</dd>
-        <dt>Para:</dt>
-        <dd><span class="kanban-destinatario">${p.nomeDestinatario}</span> - <span class="kanban-equipe">${p.equipeDestinatario || 'sem equipe'}</span></dd>
-        <dt>Produto:</dt>
-        <dd>${p.produtoNome}</dd>
-        <dt>Mensagem:</dt>
-        <dd class="${mensagem ? 'kanban-mensagem' : 'kanban-sem-mensagem'}">${mensagem ? mensagemCurta(mensagem) : 'sem mensagem'}</dd>
-      </dl>
+      <div class="kanban-info">
+        <div class="kanban-linha kanban-linha-para" title="Para quem"><span class="kanban-icone" aria-label="Para">📍</span>
+          <span><span class="kanban-destinatario">${p.nomeDestinatario}</span> · <span class="kanban-equipe">${p.equipeDestinatario || 'sem equipe'}</span></span></div>
+        <div class="kanban-linha" title="Produto"><span class="kanban-icone" aria-label="Produto">🎁</span><span>${p.produtoNome}</span></div>
+        <div class="kanban-linha" title="De quem"><span class="kanban-icone" aria-label="De">👤</span><span><small>de</small> ${comprador || '—'}</span></div>
+        <div class="kanban-linha" title="Mensagem"><span class="kanban-icone" aria-label="Mensagem">💬</span>
+          <span class="${mensagem ? 'kanban-mensagem' : 'kanban-sem-mensagem'}">${mensagem ? mensagemCurta(mensagem) : 'sem mensagem'}</span></div>
+      </div>
       <div class="kanban-acoes">${acoes}</div>
     </article>`;
 }
