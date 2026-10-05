@@ -37,11 +37,11 @@ class EfiSimulada {
 require.cache[caminhoSdk] = { id: caminhoSdk, filename: caminhoSdk, loaded: true, exports: EfiSimulada };
 
 const PEDIDOS_EXEMPLO = [
-  ['Luma Gabriely', 'Lanche', ''], ['Pitoco', 'Equipe dos dog', 'Au Au'], ['Andre', 'Bandinha', 'Feliz aniversario!'],
-  ['Isabele', 'Lanchinho', ''], ['Marina', 'Liturgia', 'Voce e demais'], ['Joao Pedro', 'Bandinha', ''],
-  ['Ana Clara', 'Cozinha', 'Saudades de voce'], ['Padre Marcos', 'Coordenacao', ''], ['Beatriz', 'Recepcao', ''],
-  ['Rafael', 'Teatro', 'Arrasou']
-];
+  ['Luma Gabriely', 'Lanche', ''], ['Pedro Henrique', 'Animação', 'Valeu pela força'], ['Andre', 'Som e projeção', 'Feliz aniversario!'],
+  ['Isabele', 'Lanche', ''], ['Marina', 'Oração', 'Voce e demais'], ['Joao Pedro', 'Teatro e Diversão', ''],
+  ['Ana Clara', 'Refeição', 'Saudades de voce'], ['Padre Marcos', 'Coordenação Geral', ''], ['Beatriz', 'Comunicação', ''],
+  ['Rafael', 'Teatro e Diversão', 'Arrasou']
+]
 
 async function api(caminho, opcoes = {}) {
   const res = await fetch(`http://localhost:${PORTA}${caminho}`, {
@@ -67,7 +67,12 @@ async function criarPedidosExemplo() {
     });
     // O ultimo fica pendente de pagamento, os outros "pagos" pelo webhook.
     if (i < PEDIDOS_EXEMPLO.length - 1) {
-      await api('/webhook/pix?token=demo', { method: 'POST', body: JSON.stringify({ pix: [{ txid: pedido.pix.txid, valor: String(pedido.pix.valor) }] }) });
+      await api('/webhook/pix?token=demo', { method: 'POST', body: JSON.stringify({ pix: [{
+        txid: pedido.pix.txid,
+        valor: String(pedido.pix.valor),
+        endToEndId: `E00000000DEMO${String(i + 1).padStart(4, '0')}${pedido.pix.txid.slice(0, 14)}`,
+        horario: new Date().toISOString()
+      }] }) });
     }
   }
 

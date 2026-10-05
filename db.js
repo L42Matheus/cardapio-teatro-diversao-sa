@@ -52,6 +52,28 @@ const CATEGORIAS = [
   { id: 'teste',     nome: 'Teste',      emoji: '🚨' }
 ];
 
+// Equipes do EAC: quem recebe o pedido escolhe uma delas numa lista (evita
+// erro de digitacao). Nao confundir com as equipes de ENTREGA (tabela
+// entregadores: Equipe Trote 1 e 2).
+const EQUIPES = [
+  'Famílias',
+  'Coordenação Geral',
+  'Apresentadores',
+  'Palestras',
+  'Finanças',
+  'Comunicação',
+  'Animação',
+  'Bem-estar',
+  'Bodega',
+  'Lanche',
+  'Limpeza e Decoração',
+  'Papelaria',
+  'Refeição',
+  'Oração',
+  'Teatro e Diversão',
+  'Som e projeção'
+];
+
 // ---- Setup / seed (roda no boot do servidor) ----
 
 const PRODUTOS_SEED = [
@@ -621,6 +643,10 @@ function listarCategorias() {
   return CATEGORIAS;
 }
 
+function listarEquipes() {
+  return EQUIPES;
+}
+
 // ---- Usuarios / autenticacao ----
 // Papeis: 'admin' (usuario teatro, fixo) e 'equipe' (criados pelo admin).
 
@@ -686,6 +712,7 @@ module.exports = {
   marcarEntregue,
   listarEntregadores,
   listarCategorias,
+  listarEquipes,
   listarUsuarios,
   autenticarUsuario,
   criarUsuario,

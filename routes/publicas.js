@@ -25,6 +25,11 @@ router.get('/categorias', (req, res) => {
   res.json(db.listarCategorias());
 });
 
+// GET /api/equipes -> equipes do EAC (lista de escolha de quem vai receber)
+router.get('/equipes', (req, res) => {
+  res.json(db.listarEquipes());
+});
+
 // GET /api/status -> se os pedidos estao pausados (botao do panico do admin)
 router.get('/status', async (req, res) => {
   res.json(await db.statusPedidos());
@@ -60,11 +65,15 @@ router.post('/pedidos', async (req, res) => {
   if (destinatariosParaValidar.some(d => !nomeValido(d.nomeDestinatario))) {
     return res.status(400).json({ erro: 'O nome de quem vai receber precisa ter pelo menos 4 caracteres.' });
   }
+  const equipes = db.listarEquipes();
+  if (destinatariosParaValidar.some(d => !equipes.includes(String(d.equipeDestinatario || '').trim()))) {
+    return res.status(400).json({ erro: 'Escolha a equipe de quem vai receber na lista.' });
+  }
 
   try {
     const grupo = destinatarios
       ? await db.criarPedidosMultiplos({ produtoId, nomeComprador, contato, destinatarios })
-      : { pedidos: [await db.criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario, equipeDestinatario })] };
+      : { pedidos: [await db.criarPedido({ produtoId, nomeComprador, contato, nomeDestinatario, equipeDestinatario: String(equipeDestinatario).trim() })] };
 
     const pedidoBase = destinatarios
       ? { codigo: grupo.codigo, pixTxid: grupo.pixTxid, valor: grupo.valor }

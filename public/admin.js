@@ -213,6 +213,13 @@ async function mostrarPainel() {
   document.getElementById('filtro-categoria-pendentes').addEventListener('change', renderPendentes);
   document.getElementById('filtro-busca-todos').addEventListener('input', renderTodos);
   document.getElementById('filtro-busca-pendentes').addEventListener('input', renderPendentes);
+  const ordem = document.getElementById('ordem-pendentes');
+  try { if (ORDENACOES_KANBAN[localStorage.getItem('ordemPendentes')]) ordem.value = localStorage.getItem('ordemPendentes'); } catch (e) {}
+  if (pedidosCache.length) renderPendentes();
+  ordem.addEventListener('change', () => {
+    try { localStorage.setItem('ordemPendentes', ordem.value); } catch (e) {}
+    renderPendentes();
+  });
   document.getElementById('filtro-busca-entregues').addEventListener('input', renderEntregues);
 }
 
@@ -372,37 +379,100 @@ async function carregarCategorias() {
 }
 
 // ---------- Resumo ----------
+// Cards do Resumo sao clicaveis: mostram abaixo a lista de pedidos daquele
+// grupo. Clicar de novo no mesmo card fecha a lista.
+const FILTROS_RESUMO = {
+  todos:     { nome: 'Pedidos totais', filtro: () => true },
+  pagos:     { nome: 'Pagos',          filtro: p => p.status !== 'pendente_pagamento' && p.status !== 'cancelado' },
+  aEntregar: { nome: 'A entregar',     filtro: p => p.status === 'pago' || p.status === 'aguardando' },
+  entregues: { nome: 'Entregues',      filtro: p => p.status === 'entregue' }
+};
+let filtroResumoAtual = null;
+
 function renderResumo(pedidos) {
-  const total = pedidos.length;
-  const pagos = pedidos.filter(p => p.status !== 'pendente_pagamento' && p.status !== 'cancelado').length;
-  const entregues = pedidos.filter(p => p.status === 'entregue').length;
-  const aEntregar = pedidos.filter(p => p.status === 'pago' || p.status === 'aguardando').length;
+  const conta = chave => pedidos.filter(FILTROS_RESUMO[chave].filtro).length;
   const arrecadado = pedidos
-    .filter(p => p.status !== 'pendente_pagamento' && p.status !== 'cancelado')
+    .filter(FILTROS_RESUMO.pagos.filtro)
     .reduce((soma, p) => soma + Number(p.valor || 0), 0);
 
+  const caixa = (chave, cor) => `
+    <button type="button" class="caixa caixa-clicavel ${cor}${filtroResumoAtual === chave ? ' ativa' : ''}"
+      aria-pressed="${filtroResumoAtual === chave}" onclick="alternarFiltroResumo('${chave}')">
+      <div class="label">${FILTROS_RESUMO[chave].nome}</div>
+      <div class="valor">${conta(chave)}</div>
+      <div class="caixa-dica">${filtroResumoAtual === chave ? 'Toque para fechar' : 'Toque para ver a lista'}</div>
+    </button>`;
+
   document.getElementById('resumo').innerHTML = `
-    <div class="caixa azul">
-      <div class="label">Pedidos totais</div>
-      <div class="valor">${total}</div>
-    </div>
-    <div class="caixa">
-      <div class="label">Pagos</div>
-      <div class="valor">${pagos}</div>
-    </div>
-    <div class="caixa vermelho">
-      <div class="label">A entregar</div>
-      <div class="valor">${aEntregar}</div>
-    </div>
-    <div class="caixa verde">
-      <div class="label">Entregues</div>
-      <div class="valor">${entregues}</div>
-    </div>
+    ${caixa('todos', 'azul')}
+    ${caixa('pagos', '')}
+    ${caixa('aEntregar', 'vermelho')}
+    ${caixa('entregues', 'verde')}
     <div class="caixa">
       <div class="label">Arrecadado</div>
       <div class="valor">${formatarBRL(arrecadado)}</div>
     </div>
   `;
+  renderListaResumo(pedidos);
+}
+
+function alternarFiltroResumo(chave) {
+  filtroResumoAtual = filtroResumoAtual === chave ? null : chave;
+  renderResumo(pedidosCache);
+  if (filtroResumoAtual) {
+    document.getElementById('resumo-lista').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function renderListaResumo(pedidos) {
+  const box = document.getElementById('resumo-lista');
+  if (!box) return;
+  if (!filtroResumoAtual) { box.classList.add('oculto'); return; }
+
+  const lista = pedidos
+    .filter(FILTROS_RESUMO[filtroResumoAtual].filtro)
+    .slice()
+    .sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm)); // mais recentes primeiro
+
+  box.classList.remove('oculto');
+  document.getElementById('resumo-lista-titulo').textContent = `Mostrando: ${FILTROS_RESUMO[filtroResumoAtual].nome} (${lista.length})`;
+
+  let detalhe = '';
+  if (filtroResumoAtual === 'pagos') {
+    const aEntregar = lista.filter(FILTROS_RESUMO.aEntregar.filtro).length;
+    const entregues = lista.filter(FILTROS_RESUMO.entregues.filtro).length;
+    detalhe = `${aEntregar} a entregar · ${entregues} ${entregues === 1 ? 'entregue' : 'entregues'}`;
+  } else if (filtroResumoAtual === 'todos') {
+    const pendentes = lista.filter(p => p.status === 'pendente_pagamento').length;
+    detalhe = `${lista.length - pendentes} pagos · ${pendentes} aguardando pagamento`;
+  }
+  document.getElementById('resumo-lista-detalhe').textContent = detalhe;
+
+  const corpo = document.getElementById('corpo-resumo-lista');
+  corpo.innerHTML = lista.length ? '' :
+    `<tr class="linha-vazia"><td colspan="8" style="text-align:center; color:var(--texto-fraco); padding:20px;">Nenhum pedido aqui.</td></tr>`;
+  lista.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Ticket"><strong>${p.codigo || '#' + p.id}</strong></td>
+      <td data-label="Feito em">${formatarDataHora(p.criadoEm)}</td>
+      <td data-label="Produto">${p.produtoNome}</td>
+      <td data-label="Destinatário">${p.nomeDestinatario}</td>
+      <td data-label="Equipe">${p.equipeDestinatario || '—'}</td>
+      <td data-label="Comprador">${p.anonimo ? 'Anônimo' : p.nomeComprador}</td>
+      <td data-label="Valor">${formatarBRL(p.valor)}</td>
+      <td data-label="Status">${statusResumo(p)}</td>
+    `;
+    corpo.appendChild(tr);
+  });
+}
+
+// No Resumo, "pago" e "aguardando" aparecem os dois como "A entregar" (bate
+// com o numero do card), dizendo embaixo se esta livre ou com qual equipe.
+function statusResumo(p) {
+  if (p.status !== 'pago' && p.status !== 'aguardando') return statusPedido(p.status);
+  const onde = p.claimedBy && reservaAtiva(p) ? `com ${p.claimedBy}` : 'livre, ninguém pegou';
+  return `${statusPedido('aguardando')}<br><small style="color:var(--texto-fraco);">${onde}</small>`;
 }
 
 // ---------- Relatório de valores compensados ----------
@@ -449,7 +519,7 @@ function gerarRelatorioCompensados() {
 
   corpo.innerHTML = '';
   if (compensados.length === 0) {
-    corpo.innerHTML = `<tr class="linha-vazia"><td colspan="7" style="text-align:center; color:var(--texto-fraco); padding:20px;">Nenhum pedido compensado ainda.</td></tr>`;
+    corpo.innerHTML = `<tr class="linha-vazia"><td colspan="8" style="text-align:center; color:var(--texto-fraco); padding:20px;">Nenhum pedido compensado ainda.</td></tr>`;
     return;
   }
 
@@ -469,7 +539,8 @@ function gerarRelatorioCompensados() {
       <td data-label="Valor">${formatarBRL(valorExibido)}</td>
       <td data-label="Confirmado em">${formatarDataHora(horarioConfirmacaoPedido(p))}</td>
       <td data-label="Origem">${origemHTML}</td>
-      <td data-label="End-to-End ID (Efi)"><small>${(pagamento && pagamento.endToEndId) || '—'}</small></td>
+      <td data-label="End-to-End ID (Efi)"><small class="codigo-longo">${(pagamento && pagamento.endToEndId) || '—'}</small></td>
+      <td data-label="TXID (cobrança)"><small class="codigo-longo">${p.pixTxid || '—'}</small></td>
       <td data-label="Status atual">${statusPedido(p.status)}</td>
     `;
     corpo.appendChild(tr);
@@ -567,13 +638,33 @@ const COLUNAS_KANBAN = [
 ];
 let colunaKanbanAtual = 0;
 
+// Desde quando o pedido espera ser assumido: hora do pagamento (vem da Efi
+// no webhook) ou, sem ela, hora em que o pedido foi feito.
+function inicioEspera(p) {
+  return (p.pagamento && p.pagamento.horario) || p.criadoEm;
+}
+
+const ORDENACOES_KANBAN = {
+  'espera-mais': (a, b) => new Date(inicioEspera(a)) - new Date(inicioEspera(b)),
+  'espera-menos': (a, b) => new Date(inicioEspera(b)) - new Date(inicioEspera(a)),
+  equipe: (a, b) => String(a.equipeDestinatario || '').localeCompare(String(b.equipeDestinatario || ''), 'pt-BR')
+    || new Date(inicioEspera(a)) - new Date(inicioEspera(b))
+};
+
+function ordemKanban() {
+  const valor = document.getElementById('ordem-pendentes')?.value;
+  return ORDENACOES_KANBAN[valor] ? valor : 'espera-mais';
+}
+
 function cardPedidoKanban(p, estado, ehProximo) {
+  const minutosEspera = minutosDesde(inicioEspera(p));
   const comprador = p.anonimo ? 'Anônimo' : (p.nomeComprador || '');
   const mensagem = String(p.mensagemEspecial || '').trim();
   let selo = '';
   let acoes = '';
   if (estado === 'livre') {
-    if (ehProximo) selo = '<span class="kanban-selo selo-proximo">PRÓXIMO</span>';
+    selo = `<span class="kanban-espera${minutosEspera >= 15 ? ' espera-longa' : ''}">⏱ esperando há ${minutosEspera} min</span>`;
+    if (ehProximo) selo = '<span class="kanban-selo selo-proximo">PRÓXIMO</span>' + selo;
     acoes = nomeEquipeAtual()
       ? `<button onclick="pegar(${p.id})">Peguei este</button>`
       : '<button disabled>Escolha a equipe acima</button>';
@@ -611,10 +702,13 @@ function renderPendentes() {
     .filter(p => p.status === 'pago' || p.status === 'aguardando')
     .filter(p => categoria === 'todos' || p.categoria === categoria)
     .filter(p => filtroTexto(p, busca))
-    .sort((a, b) => new Date(a.criadoEm) - new Date(b.criadoEm)); // mais antigo primeiro
+    .sort(ORDENACOES_KANBAN[ordemKanban()]);
 
   const grupos = { livre: [], minha: [], outra: [] };
   lista.forEach(p => grupos[estadoReserva(p)].push(p));
+  // "PROXIMO" e sempre quem espera ha mais tempo, qualquer que seja a ordem.
+  const proximo = grupos.livre.slice().sort(ORDENACOES_KANBAN['espera-mais'])[0];
+  const porEquipe = ordemKanban() === 'equipe';
 
   document.getElementById('contador-pendentes').textContent = `(${lista.length})`;
   const badgePend = document.getElementById('aba-contador-pendentes');
@@ -624,7 +718,14 @@ function renderPendentes() {
     const pedidos = grupos[col.chave];
     document.getElementById(`kanban-n-${col.chave}`).textContent = pedidos.length;
     document.getElementById(`kanban-${col.chave}`).innerHTML = pedidos.length
-      ? pedidos.map((p, i) => cardPedidoKanban(p, col.chave, i === 0)).join('')
+      ? pedidos.map((p, i) => {
+          // Ordenando por equipe, um titulo separa cada equipe na coluna.
+          const equipe = p.equipeDestinatario || 'Sem equipe';
+          const novaEquipe = porEquipe && (i === 0 || (pedidos[i - 1].equipeDestinatario || 'Sem equipe') !== equipe);
+          const qtdEquipe = pedidos.filter(x => (x.equipeDestinatario || 'Sem equipe') === equipe).length;
+          return (novaEquipe ? `<div class="kanban-grupo">📍 ${equipe} <span>${qtdEquipe}</span></div>` : '')
+            + cardPedidoKanban(p, col.chave, p === proximo);
+        }).join('')
       : `<div class="kanban-vazio">${col.vazio}</div>`;
   });
 
