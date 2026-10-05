@@ -52,6 +52,28 @@ const CATEGORIAS = [
   { id: 'teste',     nome: 'Teste',      emoji: '🚨' }
 ];
 
+// Equipes do EAC: quem recebe o pedido escolhe uma delas numa lista (evita
+// erro de digitacao). Nao confundir com as equipes de ENTREGA (tabela
+// entregadores: Equipe Trote 1 e 2).
+const EQUIPES = [
+  'Famílias',
+  'Coordenação Geral',
+  'Apresentadores',
+  'Palestras',
+  'Finanças',
+  'Comunicação',
+  'Animação',
+  'Bem-estar',
+  'Bodega',
+  'Lanche',
+  'Limpeza e Decoração',
+  'Papelaria',
+  'Refeição',
+  'Oração',
+  'Teatro e Diversão',
+  'Som e projeção'
+];
+
 // ---- Setup / seed (roda no boot do servidor) ----
 
 const PRODUTOS_SEED = [
@@ -501,11 +523,18 @@ async function atualizarStatusPorTxid(txid, novoStatus, detalhesPagamento) {
             atualizado_em = now(),
             pagamento = COALESCE($2::jsonb, pagamento)
       WHERE pix_txid = $3
+        -- So marca como pago quem ainda esperava pagamento. A Efi reenvia o
+        -- webhook quando a resposta demora; sem isso um pedido ja pego ou
+        -- entregue voltava para "pago" e reaparecia em Disponiveis.
+        AND ($1 <> 'pago' OR status = 'pendente_pagamento')
       RETURNING *`,
     [novoStatus, pagamentoJson, txid]
   );
-  if (rows.length === 0) throw new Error('PEDIDO_NAO_ENCONTRADO');
-  return linhaParaPedido(rows[0]);
+  if (rows.length > 0) return linhaParaPedido(rows[0]);
+
+  const existente = await buscarPedidoPorTxid(txid);
+  if (!existente) throw new Error('PEDIDO_NAO_ENCONTRADO');
+  return existente; // ja estava pago/em entrega/entregue: nada a fazer
 }
 
 async function atribuirEntregador(pedidoId, entregadorId) {
@@ -614,6 +643,10 @@ function listarCategorias() {
   return CATEGORIAS;
 }
 
+function listarEquipes() {
+  return EQUIPES;
+}
+
 // ---- Usuarios / autenticacao ----
 // Papeis: 'admin' (usuario teatro, fixo) e 'equipe' (criados pelo admin).
 
@@ -679,6 +712,7 @@ module.exports = {
   marcarEntregue,
   listarEntregadores,
   listarCategorias,
+  listarEquipes,
   listarUsuarios,
   autenticarUsuario,
   criarUsuario,

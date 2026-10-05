@@ -1446,3 +1446,71 @@ select.small { width: auto; display: inline-block; padding: 6px 8px; }
 @media (prefers-reduced-motion: reduce) {
   .kanban-pilula.pisca { animation: none; }
 }
+
+/* Confirmacao das acoes do quadro: Nao em vermelho, Sim em verde. */
+.confirmacao-card { border-top-color: var(--azul); }
+.confirmacao-card h2 { font-size: 1.2rem; text-wrap: balance; border-left: 0; padding-left: 0; }
+.confirmacao-pedido {
+  display: grid;
+  gap: 2px;
+  background: var(--creme);
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+.confirmacao-pedido:empty { display: none; }
+.confirmacao-pedido strong { font-size: 1.1rem; color: var(--texto); }
+.confirmacao-pedido span { font-size: 0.85rem; color: var(--texto-fraco); }
+.confirmacao-botoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+.confirmacao-botoes button { margin: 0; min-height: 52px; font-size: 1rem; font-weight: 800; }
+.confirmacao-botoes .botao-sim { background: var(--verde); }
+.confirmacao-botoes .botao-sim:hover:not(:disabled) { background: #1f5e23; }
+.confirmacao-botoes .botao-nao { background: var(--vermelho); }
+.confirmacao-botoes .botao-nao:hover:not(:disabled) { background: #b71c1c; }
+.confirmacao-botoes button:focus-visible { outline: 3px solid var(--amarelo); outline-offset: 2px; }
+
+/* Resumo: cards clicaveis que abrem a lista de pedidos logo abaixo. */
+.resumo .caixa-clicavel {
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  margin: 0;
+  min-height: 0;
+  cursor: pointer;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+.resumo .caixa-clicavel:hover:not(:disabled) { background: var(--branco); box-shadow: var(--sombra-forte); transform: translateY(-1px); }
+.resumo .caixa-clicavel.ativa { background: var(--creme-2); box-shadow: 0 0 0 2px var(--azul), var(--sombra); }
+.resumo .caixa-clicavel:focus-visible { outline: 3px solid var(--amarelo); outline-offset: 2px; }
+.caixa-dica { font-size: 0.72rem; color: var(--azul); font-weight: 600; margin-top: 4px; }
+#resumo-lista { margin-top: 16px; }
+.resumo-lista-detalhe { color: var(--texto-fraco); font-size: 0.9rem; font-weight: 600; margin: -4px 0 10px; }
+.resumo-lista-detalhe:empty { display: none; }
+
+/* Quadro: tempo de espera e titulos de equipe ao ordenar por equipe. */
+.kanban-espera { justify-self: start; font-size: 0.75rem; font-weight: 700; color: var(--texto-fraco); }
+.kanban-espera.espera-longa { color: var(--vermelho); }
+.kanban-grupo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--azul-esc);
+  padding: 6px 4px 0;
+  border-bottom: 1px solid var(--borda);
+}
+.kanban-grupo span { font-size: 0.72rem; color: var(--texto-fraco); }
+
+/* Relatorio: end-to-end e txid sao longos; quebram em vez de alargar a tabela. */
+.codigo-longo { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.72rem; word-break: break-all; }

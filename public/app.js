@@ -260,7 +260,7 @@ function adicionarDestinatario() {
   const destinatario = dadosDestinatarioAtual();
 
   if (!destinatario.nomeDestinatario || !destinatario.equipeDestinatario) {
-    erroEl.textContent = 'Preencha o nome e a equipe dessa pessoa antes de adicionar.';
+    erroEl.textContent = 'Preencha o nome e escolha a equipe dessa pessoa antes de adicionar.';
     erroEl.classList.remove('oculto');
     return;
   }
@@ -506,14 +506,31 @@ function iniciarPedidoDireto() {
   abrirFormularioNaPagina(produto.id, produto.nome, { semScroll: true });
 }
 
+// Lista de equipes de quem vai receber (vem do servidor, que tambem recusa
+// equipe fora dela). Escolher numa lista evita erro de digitacao.
+async function carregarEquipes() {
+  const select = document.getElementById('equipeDestinatario');
+  if (!select) return;
+  const res = await fetch('/api/equipes');
+  const equipes = await res.json();
+  equipes.forEach(nome => {
+    const opcao = document.createElement('option');
+    opcao.value = nome;
+    opcao.textContent = nome;
+    select.appendChild(opcao);
+  });
+}
+
 // ---------- Boot ----------
 (async () => {
+  await carregarEquipes();
   await carregarCategorias();
   await carregarProdutos();
   await carregarStatus();
   iniciarPedidoDireto();
   ['nomeDestinatario', 'equipeDestinatario'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', atualizarBotoesPedido);
+    document.getElementById(id)?.addEventListener('change', atualizarBotoesPedido);
   });
   atualizarBotoesPedido();
   setInterval(carregarStatus, 5000);

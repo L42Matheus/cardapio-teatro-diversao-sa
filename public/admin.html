@@ -51,6 +51,27 @@
 
     <section id="tab-resumo" class="tab-conteudo oculto">
       <div class="resumo" id="resumo"></div>
+      <section id="resumo-lista" class="card oculto" aria-live="polite">
+        <h2 id="resumo-lista-titulo"></h2>
+        <p id="resumo-lista-detalhe" class="resumo-lista-detalhe"></p>
+        <div class="tabela-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ticket</th>
+                <th>Feito em</th>
+                <th>Produto</th>
+                <th>Destinatário</th>
+                <th>Equipe</th>
+                <th>Comprador</th>
+                <th>Valor</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="corpo-resumo-lista"></tbody>
+          </table>
+        </div>
+      </section>
     </section>
 
     <section id="tab-todos" class="tab-conteudo card">
@@ -98,6 +119,14 @@
             Buscar
             <input id="filtro-busca-pendentes" type="text" placeholder="Nome ou equipe">
           </label>
+          <label>
+            Ordenar por
+            <select id="ordem-pendentes" class="small">
+              <option value="espera-mais">Esperando há mais tempo</option>
+              <option value="espera-menos">Esperando há menos tempo</option>
+              <option value="equipe">Equipe (A–Z)</option>
+            </select>
+          </label>
           <button class="secundario" onclick="carregarPedidos()">Atualizar</button>
         </div>
       </div>
@@ -109,7 +138,7 @@
         <div id="botoes-equipe-operacao" class="equipe-botoes"></div>
       </section>
       <p class="kanban-ajuda">
-        Ordem de chegada: pedido mais antigo primeiro. Toque em <strong>Peguei este</strong> para levar um pedido e em <strong>Entregue</strong> quando entregar.
+        Toque em <strong>Peguei este</strong> para levar um pedido e em <strong>Entregue</strong> quando entregar. Use <strong>Ordenar por</strong> para ver primeiro quem espera há mais tempo ou agrupar por equipe.
       </p>
 
       <!-- No celular as colunas viram um carrossel; estes contadores mostram as 3 e levam a cada uma. -->
@@ -147,7 +176,7 @@
           <thead>
             <tr>
               <th>Ticket</th>
-              <th>Entregue às</th>
+              <th>Entregue em</th>
               <th>Por</th>
               <th>Categoria</th>
               <th>Produto</th>
@@ -215,6 +244,7 @@
               <th>Confirmado em</th>
               <th>Origem</th>
               <th>End-to-End ID (Efi)</th>
+              <th>TXID (cobrança)</th>
               <th>Status atual</th>
             </tr>
           </thead>
@@ -234,5 +264,19 @@
 </footer>
 
 <script src="admin.js"></script>
+<!-- Confirmacao das acoes do quadro (pegar, entregar, liberar). -->
+<div id="confirmacao" class="popup-overlay oculto" role="dialog" aria-modal="true" aria-labelledby="confirmacao-titulo">
+  <div class="popup-card confirmacao-card">
+    <div class="popup-icone" id="confirmacao-icone"></div>
+    <h2 id="confirmacao-titulo"></h2>
+    <div class="confirmacao-pedido" id="confirmacao-pedido"></div>
+    <p id="confirmacao-texto"></p>
+    <div class="confirmacao-botoes">
+      <button type="button" class="botao-nao" id="confirmacao-nao">Não</button>
+      <button type="button" class="botao-sim" id="confirmacao-sim">Sim</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
