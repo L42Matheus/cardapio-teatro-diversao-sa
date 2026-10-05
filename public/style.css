@@ -1514,3 +1514,28 @@ select.small { width: auto; display: inline-block; padding: 6px 8px; }
 
 /* Relatorio: end-to-end e txid sao longos; quebram em vez de alargar a tabela. */
 .codigo-longo { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.72rem; word-break: break-all; }
+
+/* Card do quadro: De / Para / Produto / Mensagem em linhas com rotulo,
+   texto escuro e legivel (antes ficava cinza e pequeno). */
+.kanban-info {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 8px;
+  margin: 2px 0 4px;
+  font-size: 0.95rem;
+  color: var(--texto);
+}
+.kanban-info dt {
+  font-weight: 800;
+  color: var(--azul-esc);
+}
+.kanban-info dd {
+  margin: 0;
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.kanban-info .kanban-destinatario { font-size: 1.05rem; font-weight: 800; }
+.kanban-info .kanban-equipe { font-weight: 800; }
+.kanban-info .kanban-mensagem { background: var(--creme); border-radius: 6px; padding: 2px 8px; justify-self: start; }
+.kanban-info .kanban-sem-mensagem { color: var(--texto-fraco); font-weight: 400; font-style: italic; }
