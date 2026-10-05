@@ -1515,27 +1515,22 @@ select.small { width: auto; display: inline-block; padding: 6px 8px; }
 /* Relatorio: end-to-end e txid sao longos; quebram em vez de alargar a tabela. */
 .codigo-longo { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.72rem; word-break: break-all; }
 
-/* Card do quadro: De / Para / Produto / Mensagem em linhas com rotulo,
-   texto escuro e legivel (antes ficava cinza e pequeno). */
-.kanban-info {
+/* Card do quadro: uma linha por informacao, com icone no lugar do rotulo
+   (📍 para quem · 🎁 produto · 👤 de quem · 💬 mensagem). */
+.kanban-info { display: grid; gap: 6px; margin: 2px 0 4px; color: var(--texto); }
+.kanban-linha {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 4px 8px;
-  margin: 2px 0 4px;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: start;
+  gap: 6px;
   font-size: 0.95rem;
-  color: var(--texto);
-}
-.kanban-info dt {
-  font-weight: 800;
-  color: var(--azul-esc);
-}
-.kanban-info dd {
-  margin: 0;
   font-weight: 600;
-  min-width: 0;
   overflow-wrap: anywhere;
 }
-.kanban-info .kanban-destinatario { font-size: 1.05rem; font-weight: 800; }
-.kanban-info .kanban-equipe { font-weight: 800; }
-.kanban-info .kanban-mensagem { background: var(--creme); border-radius: 6px; padding: 2px 8px; justify-self: start; }
+.kanban-icone { font-size: 1.05rem; line-height: 1.3; text-align: center; }
+.kanban-linha small { color: var(--texto-fraco); font-weight: 500; }
+.kanban-linha-para { font-size: 1.1rem; font-weight: 800; }
+.kanban-info .kanban-destinatario { font-size: inherit; font-weight: 800; }
+.kanban-info .kanban-equipe { font-weight: 800; color: var(--azul); }
+.kanban-info .kanban-mensagem { background: none; padding: 0; font-weight: 700; }
 .kanban-info .kanban-sem-mensagem { color: var(--texto-fraco); font-weight: 400; font-style: italic; }
