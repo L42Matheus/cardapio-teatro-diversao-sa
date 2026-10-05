@@ -14,7 +14,6 @@
 
 const path = require('path');
 const os = require('os');
-const EmbeddedPostgres = require('embedded-postgres').default;
 
 const PORTA_PG = 5499;
 const PORTA = Number(process.env.PORT || 3000);
@@ -88,6 +87,8 @@ function enderecosDeRede() {
 }
 
 (async () => {
+  // embedded-postgres e um modulo ESM: no Node 18 so carrega via import().
+  const { default: EmbeddedPostgres } = await import('embedded-postgres');
   const pg = new EmbeddedPostgres({
     databaseDir: path.join(__dirname, '..', '.pgdata-demo'),
     user: 'postgres',

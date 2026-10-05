@@ -10,17 +10,19 @@
 // So para desenvolvimento local — em producao (Railway) o app se conecta
 // no Postgres gerenciado de verdade via DATABASE_URL.
 
-const EmbeddedPostgres = require('embedded-postgres').default;
-
-const pg = new EmbeddedPostgres({
+let pg;
+const opcoes = {
   databaseDir: './.pgdata-local',
   user: 'postgres',
   password: 'postgres',
   port: 5488,
   persistent: true
-});
+};
 
 (async () => {
+  // embedded-postgres e um modulo ESM: no Node 18 so carrega via import().
+  const { default: EmbeddedPostgres } = await import('embedded-postgres');
+  pg = new EmbeddedPostgres(opcoes);
   await pg.initialise();
   await pg.start();
   console.log('Postgres local rodando em postgresql://postgres:postgres@localhost:5488/postgres');
@@ -32,6 +34,6 @@ const pg = new EmbeddedPostgres({
 
 process.on('SIGINT', async () => {
   console.log('\nParando Postgres local...');
-  await pg.stop();
+  if (pg) await pg.stop();
   process.exit(0);
 });
