@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "node server.js",
-    "db:local": "node scripts/pg-local.js"
+    "db:local": "node scripts/pg-local.js",
+    "demo": "node scripts/demo-local.js"
   },
   "dependencies": {
     "dotenv": "^17.4.2",

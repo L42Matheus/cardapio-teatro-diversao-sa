@@ -197,6 +197,7 @@ async function mostrarPainel() {
   document.getElementById('aba-estoque').classList.toggle('oculto', !ehAdmin);
   document.getElementById('aba-relatorio').classList.toggle('oculto', !ehAdmin);
   configurarAbas();
+  configurarCarrosselKanban();
 
   await carregarCategorias();
   await carregarEntregadores();
@@ -555,89 +556,140 @@ async function simularPagamentoAdmin(pedidoId) {
 }
 
 // ---------- Pendentes ----------
+// Quadro kanban: Disponiveis -> Com a minha equipe -> Com outras equipes.
+// No computador as 3 colunas ficam lado a lado; no celular viram um
+// carrossel (scroll-snap) com a borda da proxima coluna aparecendo.
+const COLUNAS_KANBAN = [
+  { chave: 'livre', curto: '📥 Livres', vazio: 'Nenhum pedido livre agora. 🎉' },
+  { chave: 'minha', curto: '🚚 Comigo', vazio: 'Nada com a sua equipe. Deslize para “Livres” e pegue um pedido.' },
+  { chave: 'outra', curto: '🔒 Outras', vazio: 'Nenhum pedido com outras equipes.' }
+];
+let colunaKanbanAtual = 0;
+
+function cardPedidoKanban(p, estado, ehProximo) {
+  const comprador = p.anonimo ? 'Anônimo' : (p.nomeComprador || '');
+  const mensagem = String(p.mensagemEspecial || '').trim();
+  let selo = '';
+  let acoes = '';
+  if (estado === 'livre') {
+    if (ehProximo) selo = '<span class="kanban-selo selo-proximo">PRÓXIMO</span>';
+    acoes = nomeEquipeAtual()
+      ? `<button onclick="pegar(${p.id})">Peguei este</button>`
+      : '<button disabled>Escolha a equipe acima</button>';
+  } else if (estado === 'minha') {
+    selo = `<span class="kanban-selo selo-minha">com vocês há ${minutosDesde(p.claimedAt)} min</span>`;
+    acoes = `
+      <button class="botao-entregue" onclick="entregar(${p.id})">✓ Entregue</button>
+      <button class="secundario" onclick="liberar(${p.id}, false)">Liberar</button>`;
+  } else {
+    selo = `<span class="kanban-selo">🔒 ${p.claimedBy} · ${minutosDesde(p.claimedAt)} min</span>`;
+    acoes = `<button class="secundario" onclick="liberar(${p.id}, true)" title="Só use se souber que a equipe desistiu">Forçar liberação</button>`;
+  }
+  return `
+    <article class="kanban-card card-${estado}" data-pedido-id="${p.id}">
+      <div class="kanban-card-topo">
+        <span><strong>${p.codigo || '#' + p.id}</strong> · ${formatarHora(p.criadoEm)}</span>
+        <span>${p.produtoNome}</span>
+      </div>
+      ${selo}
+      <div class="kanban-destino">
+        <span class="kanban-destinatario">${p.nomeDestinatario}</span>
+        <span class="kanban-equipe">${p.equipeDestinatario || '—'}</span>
+      </div>
+      ${mensagem ? `<div class="kanban-mensagem">💬 ${mensagemCurta(mensagem)}</div>` : ''}
+      <div class="kanban-detalhe">${nomeCategoria(p.categoria)} · de ${comprador} · ${formatarBRL(p.valor)}</div>
+      <div class="kanban-acoes">${acoes}</div>
+    </article>`;
+}
+
 function renderPendentes() {
-  const corpo = document.getElementById('corpo-pendentes');
   const categoria = document.getElementById('filtro-categoria-pendentes').value;
   const busca = document.getElementById('filtro-busca-pendentes').value.trim();
 
   const lista = pedidosCache
     .filter(p => p.status === 'pago' || p.status === 'aguardando')
     .filter(p => categoria === 'todos' || p.categoria === categoria)
-    .filter(p => filtroTexto(p, busca));
+    .filter(p => filtroTexto(p, busca))
+    .sort((a, b) => new Date(a.criadoEm) - new Date(b.criadoEm)); // mais antigo primeiro
 
-  // Ordem: minhas reservas primeiro, depois livres (FIFO), depois de outras equipes,
-  // dentro de cada grupo por horário de criação (mais antigo primeiro).
-  const prioridade = { minha: 0, livre: 1, outra: 2 };
-  lista.sort((a, b) => {
-    const pa = prioridade[estadoReserva(a)];
-    const pb = prioridade[estadoReserva(b)];
-    if (pa !== pb) return pa - pb;
-    return new Date(a.criadoEm) - new Date(b.criadoEm);
-  });
+  const grupos = { livre: [], minha: [], outra: [] };
+  lista.forEach(p => grupos[estadoReserva(p)].push(p));
 
   document.getElementById('contador-pendentes').textContent = `(${lista.length})`;
   const badgePend = document.getElementById('aba-contador-pendentes');
   if (badgePend) badgePend.innerHTML = lista.length ? `<span class="contador">${lista.length}</span>` : '';
-  corpo.innerHTML = '';
 
-  if (lista.length === 0) {
-    corpo.innerHTML = `<tr class="linha-vazia"><td colspan="10" style="text-align:center; color:var(--texto-fraco); padding:20px;">Nenhum pedido aguardando entrega. 🎉</td></tr>`;
-    return;
-  }
-
-  let primeiroLivreJaMarcado = false;
-
-  lista.forEach(p => {
-    const estado = estadoReserva(p);
-    const tr = document.createElement('tr');
-
-    let acoesHTML = '';
-    let indicadorHTML = '';
-    let corLinha = '';
-    tr.className = `pedido-${estado}`;
-
-    if (estado === 'livre') {
-      if (!primeiroLivreJaMarcado) {
-        corLinha = 'background: rgba(245, 179, 1, 0.10);';
-        indicadorHTML = '<br><small style="color:var(--amarelo-esc); font-weight:600;">PRÓXIMO</small>';
-        primeiroLivreJaMarcado = true;
-      }
-      acoesHTML = nomeEquipeAtual()
-        ? `<button onclick="pegar(${p.id})">Peguei este</button>`
-        : `<button disabled>Escolha equipe</button>`;
-    } else if (estado === 'minha') {
-      corLinha = 'background: rgba(30,90,168,0.08);';
-      indicadorHTML = `<br><small style="color:var(--azul); font-weight:600;">🔵 VOCÊ (${minutosDesde(p.claimedAt)} min)</small>`;
-      acoesHTML = `
-        <button class="destaque" onclick="entregar(${p.id})">Entregue</button>
-        <button class="secundario" onclick="liberar(${p.id}, false)">Liberar</button>
-      `;
-    } else {
-      corLinha = 'background: #f5f5f5; opacity: 0.75;';
-      indicadorHTML = `<br><small style="color:var(--texto-fraco);">🔒 ${p.claimedBy} (${minutosDesde(p.claimedAt)} min)</small>`;
-      acoesHTML = `<button class="secundario" onclick="liberar(${p.id}, true)" title="Só use se souber que a equipe desistiu">Forçar liberação</button>`;
-    }
-
-    tr.style.cssText = corLinha;
-    tr.dataset.pedidoId = String(p.id);
-    const compradorHTML = p.anonimo
-      ? `<span style="color:var(--texto-fraco); font-weight:600;">Anônimo</span><br><small>${p.contato || ''}</small>`
-      : `${p.nomeComprador}<br><small>${p.contato || ''}</small>`;
-
-    tr.innerHTML = `
-      <td data-label="Ticket"><strong>${p.codigo || '#' + p.id}</strong>${indicadorHTML}</td>
-      <td data-label="Hora">${formatarHora(p.criadoEm)}</td>
-      <td data-label="Categoria">${nomeCategoria(p.categoria)}</td>
-      <td data-label="Produto">${p.produtoNome}</td>
-      <td data-label="Destinatário"><strong>${p.nomeDestinatario}</strong></td>
-      <td data-label="Equipe">${p.equipeDestinatario || '<span style="color:var(--texto-fraco);">—</span>'}</td>
-      <td data-label="Comprador">${compradorHTML}</td>
-      <td data-label="Mensagem">${mensagemCurta(p.mensagemEspecial)}</td>
-      <td data-label="Valor">${formatarBRL(p.valor)}</td>
-      <td data-label="Ação" class="acoes-pedido">${acoesHTML}</td>
-    `;
-    corpo.appendChild(tr);
+  COLUNAS_KANBAN.forEach(col => {
+    const pedidos = grupos[col.chave];
+    document.getElementById(`kanban-n-${col.chave}`).textContent = pedidos.length;
+    document.getElementById(`kanban-${col.chave}`).innerHTML = pedidos.length
+      ? pedidos.map((p, i) => cardPedidoKanban(p, col.chave, i === 0)).join('')
+      : `<div class="kanban-vazio">${col.vazio}</div>`;
   });
+
+  document.getElementById('kanban-pilulas').innerHTML = COLUNAS_KANBAN.map((col, i) => `
+    <button type="button" role="tab" class="kanban-pilula pilula-${col.chave}${i === colunaKanbanAtual ? ' ativa' : ''}"
+      aria-selected="${i === colunaKanbanAtual}" onclick="irParaColunaKanban(${i})">
+      <b>${grupos[col.chave].length}</b>${col.curto}
+    </button>`).join('');
+  marcarColunaKanban(colunaKanbanAtual);
+}
+
+function marcarColunaKanban(indice) {
+  colunaKanbanAtual = indice;
+  document.querySelectorAll('.kanban-pilula').forEach((el, i) => {
+    el.classList.toggle('ativa', i === indice);
+    el.setAttribute('aria-selected', i === indice);
+  });
+  document.querySelectorAll('#kanban-pontos i').forEach((el, i) => el.classList.toggle('on', i === indice));
+}
+
+function irParaColunaKanban(indice) {
+  const trilho = document.getElementById('kanban-trilho');
+  const coluna = trilho.children[indice];
+  if (!coluna) return;
+  esconderAvisoKanban();
+  trilho.scrollTo({ left: coluna.offsetLeft - trilho.offsetLeft, behavior: 'smooth' });
+  marcarColunaKanban(indice);
+}
+
+// Descobre qual coluna esta visivel depois que a pessoa desliza o dedo.
+function configurarCarrosselKanban() {
+  const trilho = document.getElementById('kanban-trilho');
+  if (!trilho) return;
+  let timer;
+  trilho.addEventListener('scroll', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const colunas = [...trilho.children];
+      const posicao = trilho.scrollLeft + trilho.offsetLeft;
+      let maisPerto = 0;
+      colunas.forEach((c, i) => {
+        if (Math.abs(c.offsetLeft - posicao) < Math.abs(colunas[maisPerto].offsetLeft - posicao)) maisPerto = i;
+      });
+      if (maisPerto !== colunaKanbanAtual) marcarColunaKanban(maisPerto);
+    }, 80);
+  }, { passive: true });
+}
+
+let timerAvisoKanban;
+function mostrarAvisoKanban(texto) {
+  const aviso = document.getElementById('kanban-aviso');
+  aviso.innerHTML = `<span>${texto}</span><button type="button" onclick="irParaColunaKanban(1)">Ver →</button>`;
+  aviso.classList.remove('oculto');
+  clearTimeout(timerAvisoKanban);
+  timerAvisoKanban = setTimeout(esconderAvisoKanban, 4000);
+  const pilula = document.querySelector('.kanban-pilula.pilula-minha');
+  if (pilula) {
+    pilula.classList.remove('pisca');
+    void pilula.offsetWidth; // reinicia a animacao
+    pilula.classList.add('pisca');
+  }
+}
+
+function esconderAvisoKanban() {
+  clearTimeout(timerAvisoKanban);
+  document.getElementById('kanban-aviso')?.classList.add('oculto');
 }
 
 // ---------- Entregues ----------
@@ -708,8 +760,7 @@ async function pegar(pedidoId) {
   const dados = await res.json();
   if (!res.ok) { alert(dados.erro || 'Erro ao pegar.'); carregarPedidos(); return; }
   await carregarPedidos();
-  document.getElementById('tab-pendentes')
-    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  mostrarAvisoKanban(`<strong>${dados.nomeDestinatario || 'Pedido'}</strong> foi para “Comigo”`);
 }
 
 async function liberar(pedidoId, forcado) {

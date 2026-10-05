@@ -108,29 +108,29 @@
         </div>
         <div id="botoes-equipe-operacao" class="equipe-botoes"></div>
       </section>
-      <p style="color:var(--texto-fraco); font-size:0.85rem; margin:8px 0 0;">
-        Ordem de chegada — pedido mais antigo primeiro. Clique em <strong>Entregue</strong> quando a entrega for feita.
+      <p class="kanban-ajuda">
+        Ordem de chegada: pedido mais antigo primeiro. Toque em <strong>Peguei este</strong> para levar um pedido e em <strong>Entregue</strong> quando entregar.
       </p>
 
-      <div class="tabela-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Ticket</th>
-              <th>Hora</th>
-              <th>Categoria</th>
-              <th>Produto</th>
-              <th>Destinatário</th>
-              <th>Equipe</th>
-              <th>Comprador</th>
-              <th>Mensagem</th>
-              <th>Valor</th>
-              <th>Ação</th>
-            </tr>
-          </thead>
-          <tbody id="corpo-pendentes"></tbody>
-        </table>
+      <!-- No celular as colunas viram um carrossel; estes contadores mostram as 3 e levam a cada uma. -->
+      <div id="kanban-pilulas" class="kanban-pilulas" role="tablist" aria-label="Colunas"></div>
+
+      <div id="kanban-trilho" class="kanban-trilho">
+        <section class="kanban-coluna" data-coluna="livre" aria-labelledby="kanban-titulo-livre">
+          <h3 id="kanban-titulo-livre" class="kanban-titulo titulo-livre">📥 Disponíveis para pegar <span class="kanban-n" id="kanban-n-livre">0</span></h3>
+          <div class="kanban-cards" id="kanban-livre"></div>
+        </section>
+        <section class="kanban-coluna" data-coluna="minha" aria-labelledby="kanban-titulo-minha">
+          <h3 id="kanban-titulo-minha" class="kanban-titulo titulo-minha">🚚 Com a minha equipe <span class="kanban-n" id="kanban-n-minha">0</span></h3>
+          <div class="kanban-cards" id="kanban-minha"></div>
+        </section>
+        <section class="kanban-coluna" data-coluna="outra" aria-labelledby="kanban-titulo-outra">
+          <h3 id="kanban-titulo-outra" class="kanban-titulo titulo-outra">🔒 Com outras equipes <span class="kanban-n" id="kanban-n-outra">0</span></h3>
+          <div class="kanban-cards" id="kanban-outra"></div>
+        </section>
       </div>
+      <div id="kanban-pontos" class="kanban-pontos" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div id="kanban-aviso" class="kanban-aviso oculto" role="status"></div>
     </section>
 
     <section id="tab-entregues" class="tab-conteudo card oculto">
