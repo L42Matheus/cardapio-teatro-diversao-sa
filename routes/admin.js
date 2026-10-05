@@ -128,19 +128,35 @@ router.get('/produtos', exigirAdmin, async (req, res) => {
   res.json(await db.listarProdutosAdmin());
 });
 
+const ERROS_PRODUTO = {
+  PRODUTO_INVALIDO: [404, 'Produto nao encontrado.'],
+  ESTOQUE_INVALIDO: [400, 'Estoque invalido: informe um numero inteiro (0 ou mais).'],
+  PRECO_INVALIDO: [400, 'Preco invalido: informe um valor entre R$ 0,01 e R$ 1.000,00.'],
+  NADA_PARA_ATUALIZAR: [400, 'Informe o preco e/ou o estoque.']
+};
+
+function responderErroProduto(res, err) {
+  const [codigo, msg] = ERROS_PRODUTO[err.message] || [500, 'Erro ao atualizar produto.'];
+  res.status(codigo).json({ erro: msg });
+}
+
+// PUT /api/admin/produtos/:id { preco?, estoque? } -> altera preco e/ou estoque
+router.put('/produtos/:id', exigirAdmin, async (req, res) => {
+  const { preco, estoque } = req.body || {};
+  try {
+    res.json(await db.atualizarProduto(req.params.id, { preco, estoque }));
+  } catch (err) {
+    responderErroProduto(res, err);
+  }
+});
+
 // PUT /api/admin/produtos/:id/estoque { estoque }
 router.put('/produtos/:id/estoque', exigirAdmin, async (req, res) => {
   const { estoque } = req.body || {};
   try {
-    const produto = await db.atualizarEstoque(req.params.id, estoque);
-    res.json(produto);
+    res.json(await db.atualizarEstoque(req.params.id, estoque));
   } catch (err) {
-    const mapa = {
-      PRODUTO_INVALIDO: [404, 'Produto nao encontrado.'],
-      ESTOQUE_INVALIDO: [400, 'Informe um numero valido (0 ou mais).']
-    };
-    const [codigo, msg] = mapa[err.message] || [500, 'Erro ao atualizar estoque.'];
-    res.status(codigo).json({ erro: msg });
+    responderErroProduto(res, err);
   }
 });
 

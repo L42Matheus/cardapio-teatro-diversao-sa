@@ -233,9 +233,25 @@ function vendidosDoProduto(produtoId) {
   ).length;
 }
 
+// Valores digitados e ainda nao salvos (produtoId -> { preco, estoque }).
+// O painel re-renderiza a cada 5s (carregarPedidos); sem isso o que o admin
+// esta digitando seria apagado no meio da edicao.
+const rascunhoEstoque = {};
+
+function formatarPrecoInput(valor) {
+  return Number(valor).toFixed(2).replace('.', ',');
+}
+
+function guardarRascunho(produtoId, campo, valor) {
+  rascunhoEstoque[produtoId] = { ...rascunhoEstoque[produtoId], [campo]: valor };
+}
+
 function renderEstoque() {
   const corpo = document.getElementById('corpo-estoque');
   if (!corpo || estoqueCache.length === 0) return;
+  // Nao redesenha enquanto o admin esta com o cursor num campo da tabela
+  // (no celular, redesenhar fecha o teclado). Atualiza no proximo ciclo.
+  if (corpo.contains(document.activeElement) && document.activeElement.tagName === 'INPUT') return;
   corpo.innerHTML = '';
 
   estoqueCache.forEach(p => {
@@ -243,6 +259,9 @@ function renderEstoque() {
     const disponivel = Number.isFinite(Number(p.estoque)) ? Number(p.estoque) : 0;
     const total = vendidos + disponivel;
     const esgotado = disponivel <= 0;
+    const rascunho = rascunhoEstoque[p.id] || {};
+    const precoTela = rascunho.preco ?? formatarPrecoInput(p.preco);
+    const estoqueTela = rascunho.estoque ?? p.estoque;
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -250,33 +269,60 @@ function renderEstoque() {
         <strong>${p.nome}</strong><br>
         <small style="color:var(--texto-fraco);">${nomeCategoria(p.categoria)}</small>
       </td>
+      <td data-label="Preço (R$)" class="estoque-preco">
+        <input class="estoque-input preco-input" type="text" inputmode="decimal" value="${precoTela}" id="preco-input-${p.id}"
+          oninput="guardarRascunho(${p.id}, 'preco', this.value)">
+      </td>
       <td data-label="Disponíveis" class="estoque-disponivel">
-        <input class="estoque-input" type="number" min="0" step="1" value="${p.estoque}" id="estoque-input-${p.id}">
+        <input class="estoque-input" type="number" min="0" step="1" value="${estoqueTela}" id="estoque-input-${p.id}"
+          oninput="guardarRascunho(${p.id}, 'estoque', this.value)">
         ${esgotado ? '<small class="estoque-esgotado">Esgotado</small>' : ''}
       </td>
       <td data-label="Vendidos" class="estoque-numero"><strong>${vendidos}</strong></td>
       <td data-label="Total" class="estoque-total">${total}</td>
-      <td data-label="Ação"><button class="secundario" onclick="salvarEstoque(${p.id})">Salvar</button></td>
+      <td data-label="Ação"><button class="secundario" id="salvar-produto-${p.id}" onclick="salvarProduto(${p.id})">Salvar</button></td>
     `;
     corpo.appendChild(tr);
   });
 }
 
-async function salvarEstoque(produtoId) {
-  const input = document.getElementById(`estoque-input-${produtoId}`);
-  const estoque = input.value;
+async function salvarProduto(produtoId) {
+  const produto = estoqueCache.find(p => p.id === produtoId);
+  const preco = document.getElementById(`preco-input-${produtoId}`).value.trim();
+  const estoque = document.getElementById(`estoque-input-${produtoId}`).value.trim();
+  const precoNovo = Math.round(Number(preco.replace(',', '.')) * 100) / 100;
 
-  const res = await apiAdmin(`/produtos/${produtoId}/estoque`, {
+  if (produto && preco && precoNovo !== produto.preco) {
+    const confirmar = confirm(
+      `Mudar o preço de "${produto.nome}" de R$ ${formatarPrecoInput(produto.preco)} para R$ ${formatarPrecoInput(precoNovo)}?\n\n` +
+      'Vale para os próximos pedidos. Quem já gerou o Pix paga o valor antigo.'
+    );
+    if (!confirmar) return;
+  }
+
+  const botao = document.getElementById(`salvar-produto-${produtoId}`);
+  if (botao) { botao.disabled = true; botao.textContent = 'Salvando...'; }
+  const res = await apiAdmin(`/produtos/${produtoId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ estoque })
+    body: JSON.stringify({ preco, estoque })
   });
   const dados = await res.json();
-  if (!res.ok) { alert(dados.erro || 'Erro ao salvar estoque.'); return; }
+  if (botao) { botao.disabled = false; botao.textContent = 'Salvar'; }
+  if (!res.ok) { alert(dados.erro || 'Erro ao salvar produto.'); return; }
   // Atualiza no cache e re-renderiza pra recomputar Total.
+  delete rascunhoEstoque[produtoId];
   const idx = estoqueCache.findIndex(p => p.id === produtoId);
-  if (idx >= 0) estoqueCache[idx].estoque = dados.estoque;
+  if (idx >= 0) estoqueCache[idx] = dados;
+  if (document.activeElement) document.activeElement.blur();
   renderEstoque();
+  if (botao) {
+    const novoBotao = document.getElementById(`salvar-produto-${produtoId}`);
+    if (novoBotao) {
+      novoBotao.textContent = 'Salvo ✓';
+      setTimeout(() => { novoBotao.textContent = 'Salvar'; }, 1500);
+    }
+  }
 }
 
 // ---------- Abas do painel ----------

@@ -164,12 +164,13 @@
     </section>
 
     <section id="tab-estoque" class="tab-conteudo card oculto" data-somente-admin="true">
-      <h2>📦 Estoque dos produtos</h2>
+      <h2>📦 Preço e estoque dos produtos</h2>
       <p style="color:var(--texto-fraco); font-size:0.85rem;">
-        Só o admin pode editar o estoque. Quando chegar a 0, o produto aparece como "Esgotado" no site e não pode mais ser comprado.
+        Só o admin pode editar preço e estoque. O novo preço vale para os próximos pedidos (quem já gerou o Pix paga o valor antigo). Quando o estoque chegar a 0, o produto aparece como "Esgotado" no site e não pode mais ser comprado.
       </p>
 
       <p style="color:var(--texto-fraco); font-size:0.85rem; margin:6px 0 10px;">
+        <strong>Preço</strong>: valor de cada unidade, em reais (ex: 4,50) —
         <strong>Disponíveis</strong>: quantos o site ainda pode vender (edite pra pausar/reabrir) —
         <strong>Vendidos</strong>: quantos ja saíram (pagos ou entregues) —
         <strong>Total</strong>: soma dos dois.
@@ -179,6 +180,7 @@
           <thead>
             <tr>
               <th>Produto</th>
+              <th>Preço (R$)</th>
               <th>Disponíveis</th>
               <th style="text-align:center;">Vendidos</th>
               <th style="text-align:center;">Total</th>
