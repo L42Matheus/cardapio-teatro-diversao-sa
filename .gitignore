@@ -5,3 +5,4 @@ data/db.json
 .claude/
 certs/
 .pgdata-local/
+.pgdata-demo/

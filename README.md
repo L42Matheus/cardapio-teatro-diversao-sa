@@ -14,6 +14,21 @@ npm run db:local       # sobe um Postgres local (baixa um binario portatil sozin
 npm start               # em outro terminal
 ```
 
+### Demo local (sem credenciais da Efi)
+
+Para testar o site e o painel no seu computador, com Pix **simulado** e
+pedidos de exemplo:
+
+```bash
+npm install
+npm run demo
+```
+
+Abra http://localhost:3000/admin (usuario `teatro`, senha `demo`). O
+terminal mostra também o endereço para abrir no celular, no mesmo Wi-Fi.
+Os dados ficam em `.pgdata-demo/` (apague a pasta para recomeçar) e não
+têm relação com o banco de produção.
+
 ### Banco de dados (PostgreSQL)
 
 O "banco" e Postgres de verdade (via `pg`), nao mais um arquivo JSON.

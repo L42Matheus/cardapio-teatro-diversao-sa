@@ -7,3 +7,5 @@ npm-debug.log
 *.log
 data/db.json
 README.md
+.pgdata-local
+.pgdata-demo
