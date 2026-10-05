@@ -681,15 +681,19 @@ function cardPedidoKanban(p, estado, ehProximo) {
     <article class="kanban-card card-${estado}" data-pedido-id="${p.id}">
       <div class="kanban-card-topo">
         <span><strong>${p.codigo || '#' + p.id}</strong> · ${formatarHora(p.criadoEm)}</span>
-        <span>${p.produtoNome}</span>
+        <span>${formatarBRL(p.valor)}</span>
       </div>
       ${selo}
-      <div class="kanban-destino">
-        <span class="kanban-destinatario">${p.nomeDestinatario}</span>
-        <span class="kanban-equipe">${p.equipeDestinatario || '—'}</span>
-      </div>
-      ${mensagem ? `<div class="kanban-mensagem">💬 ${mensagemCurta(mensagem)}</div>` : ''}
-      <div class="kanban-detalhe">${nomeCategoria(p.categoria)} · de ${comprador} · ${formatarBRL(p.valor)}</div>
+      <dl class="kanban-info">
+        <dt>De:</dt>
+        <dd>${comprador || '—'}</dd>
+        <dt>Para:</dt>
+        <dd><span class="kanban-destinatario">${p.nomeDestinatario}</span> - <span class="kanban-equipe">${p.equipeDestinatario || 'sem equipe'}</span></dd>
+        <dt>Produto:</dt>
+        <dd>${p.produtoNome}</dd>
+        <dt>Mensagem:</dt>
+        <dd class="${mensagem ? 'kanban-mensagem' : 'kanban-sem-mensagem'}">${mensagem ? mensagemCurta(mensagem) : 'sem mensagem'}</dd>
+      </dl>
       <div class="kanban-acoes">${acoes}</div>
     </article>`;
 }
