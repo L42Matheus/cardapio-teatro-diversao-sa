@@ -147,7 +147,7 @@
           <thead>
             <tr>
               <th>Ticket</th>
-              <th>Entregue às</th>
+              <th>Entregue em</th>
               <th>Por</th>
               <th>Categoria</th>
               <th>Produto</th>
@@ -234,5 +234,19 @@
 </footer>
 
 <script src="admin.js"></script>
+<!-- Confirmacao das acoes do quadro (pegar, entregar, liberar). -->
+<div id="confirmacao" class="popup-overlay oculto" role="dialog" aria-modal="true" aria-labelledby="confirmacao-titulo">
+  <div class="popup-card confirmacao-card">
+    <div class="popup-icone" id="confirmacao-icone"></div>
+    <h2 id="confirmacao-titulo"></h2>
+    <div class="confirmacao-pedido" id="confirmacao-pedido"></div>
+    <p id="confirmacao-texto"></p>
+    <div class="confirmacao-botoes">
+      <button type="button" class="botao-nao" id="confirmacao-nao">Não</button>
+      <button type="button" class="botao-sim" id="confirmacao-sim">Sim</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

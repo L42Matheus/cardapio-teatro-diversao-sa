@@ -198,6 +198,7 @@ async function mostrarPainel() {
   document.getElementById('aba-relatorio').classList.toggle('oculto', !ehAdmin);
   configurarAbas();
   configurarCarrosselKanban();
+  configurarConfirmacao();
 
   await carregarCategorias();
   await carregarEntregadores();
@@ -720,7 +721,7 @@ function renderEntregues() {
 
     tr.innerHTML = `
       <td data-label="Ticket"><strong>${p.codigo || '#' + p.id}</strong></td>
-      <td data-label="Entregue às">${formatarHora(p.atualizadoEm)}</td>
+      <td data-label="Entregue em">${formatarDataHora(p.atualizadoEm)}</td>
       <td data-label="Por">${p.equipeEntregou || '<span style="color:var(--texto-fraco);">—</span>'}</td>
       <td data-label="Categoria">${nomeCategoria(p.categoria)}</td>
       <td data-label="Produto">${p.produtoNome}</td>
@@ -746,12 +747,64 @@ async function carregarPedidos() {
   renderEstoque();
 }
 
+// ---------- Confirmação (Sim verde / Não vermelho) ----------
+// Na correria do evento um toque errado pega/entrega/libera o pedido errado,
+// entao toda acao do quadro pede confirmacao mostrando para quem e o pedido.
+let resolverConfirmacao = null;
+let confirmacaoAbertaEm = 0;
+
+function confirmarAcao({ icone, titulo, pedidoId, texto, sim }) {
+  const p = pedidosCache.find(x => x.id === pedidoId);
+  document.getElementById('confirmacao-icone').textContent = icone;
+  document.getElementById('confirmacao-titulo').textContent = titulo;
+  document.getElementById('confirmacao-texto').textContent = texto || '';
+  const boxPedido = document.getElementById('confirmacao-pedido');
+  boxPedido.innerHTML = '';
+  if (p) {
+    const nome = document.createElement('strong');
+    nome.textContent = p.nomeDestinatario;
+    const detalhe = document.createElement('span');
+    detalhe.textContent = `${p.equipeDestinatario || 'sem equipe'} · ${p.produtoNome} · ${p.codigo || '#' + p.id}`;
+    boxPedido.append(nome, detalhe);
+  }
+  document.getElementById('confirmacao-sim').textContent = sim;
+  document.getElementById('confirmacao').classList.remove('oculto');
+  confirmacaoAbertaEm = Date.now();
+  document.getElementById('confirmacao-nao').focus();
+  return new Promise(resolve => { resolverConfirmacao = resolve; });
+}
+
+function fecharConfirmacao(resposta) {
+  // Ignora toques nos primeiros 400ms: evita que um toque duplo no botao do
+  // card ja confirme sem a pessoa ler.
+  if (resposta && Date.now() - confirmacaoAbertaEm < 400) return;
+  document.getElementById('confirmacao').classList.add('oculto');
+  if (resolverConfirmacao) resolverConfirmacao(resposta);
+  resolverConfirmacao = null;
+}
+
+function configurarConfirmacao() {
+  document.getElementById('confirmacao-sim').onclick = () => fecharConfirmacao(true);
+  document.getElementById('confirmacao-nao').onclick = () => fecharConfirmacao(false);
+  document.getElementById('confirmacao').addEventListener('click', e => {
+    if (e.target.id === 'confirmacao') fecharConfirmacao(false);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && resolverConfirmacao) fecharConfirmacao(false);
+  });
+}
+
 // ---------- Ações ----------
 async function pegar(pedidoId) {
   if (!nomeEquipeAtual()) {
     alert('Escolha a equipe de entrega antes de pegar um pedido.');
     return;
   }
+  const confirmou = await confirmarAcao({
+    icone: '📥', titulo: 'Deseja realmente assumir este pedido?', pedidoId,
+    texto: `Ele vai para a coluna “Comigo” da ${nomeEquipeAtual()}.`, sim: 'Sim, assumir'
+  });
+  if (!confirmou) return;
   const res = await apiAdmin(`/pedidos/${pedidoId}/pegar`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -764,7 +817,12 @@ async function pegar(pedidoId) {
 }
 
 async function liberar(pedidoId, forcado) {
-  if (forcado && !confirm('Confirmar liberação forçada? Só faça isso se a outra equipe realmente desistiu.')) return;
+  const confirmou = await confirmarAcao(forcado
+    ? { icone: '⚠️', titulo: 'Forçar a liberação deste pedido?', pedidoId,
+        texto: 'Ele está com outra equipe. Só faça isso se ela realmente desistiu.', sim: 'Sim, forçar' }
+    : { icone: '↩️', titulo: 'Deseja realmente liberar este pedido?', pedidoId,
+        texto: 'Ele volta para “Disponíveis” e outra equipe pode pegar.', sim: 'Sim, liberar' });
+  if (!confirmou) return;
   const res = await apiAdmin(`/pedidos/${pedidoId}/liberar`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -780,6 +838,11 @@ async function entregar(pedidoId) {
     alert('Escolha a equipe de entrega antes de marcar como entregue.');
     return;
   }
+  const confirmou = await confirmarAcao({
+    icone: '✅', titulo: 'Realmente foi entregue?', pedidoId,
+    texto: 'Confirme só depois de entregar na mão da pessoa.', sim: 'Sim, foi entregue'
+  });
+  if (!confirmou) return;
   const res = await apiAdmin(`/pedidos/${pedidoId}/entregar`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

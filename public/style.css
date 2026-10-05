@@ -1446,3 +1446,32 @@ select.small { width: auto; display: inline-block; padding: 6px 8px; }
 @media (prefers-reduced-motion: reduce) {
   .kanban-pilula.pisca { animation: none; }
 }
+
+/* Confirmacao das acoes do quadro: Nao em vermelho, Sim em verde. */
+.confirmacao-card { border-top-color: var(--azul); }
+.confirmacao-card h2 { font-size: 1.2rem; text-wrap: balance; border-left: 0; padding-left: 0; }
+.confirmacao-pedido {
+  display: grid;
+  gap: 2px;
+  background: var(--creme);
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+.confirmacao-pedido:empty { display: none; }
+.confirmacao-pedido strong { font-size: 1.1rem; color: var(--texto); }
+.confirmacao-pedido span { font-size: 0.85rem; color: var(--texto-fraco); }
+.confirmacao-botoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+.confirmacao-botoes button { margin: 0; min-height: 52px; font-size: 1rem; font-weight: 800; }
+.confirmacao-botoes .botao-sim { background: var(--verde); }
+.confirmacao-botoes .botao-sim:hover:not(:disabled) { background: #1f5e23; }
+.confirmacao-botoes .botao-nao { background: var(--vermelho); }
+.confirmacao-botoes .botao-nao:hover:not(:disabled) { background: #b71c1c; }
+.confirmacao-botoes button:focus-visible { outline: 3px solid var(--amarelo); outline-offset: 2px; }

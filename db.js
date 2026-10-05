@@ -501,11 +501,18 @@ async function atualizarStatusPorTxid(txid, novoStatus, detalhesPagamento) {
             atualizado_em = now(),
             pagamento = COALESCE($2::jsonb, pagamento)
       WHERE pix_txid = $3
+        -- So marca como pago quem ainda esperava pagamento. A Efi reenvia o
+        -- webhook quando a resposta demora; sem isso um pedido ja pego ou
+        -- entregue voltava para "pago" e reaparecia em Disponiveis.
+        AND ($1 <> 'pago' OR status = 'pendente_pagamento')
       RETURNING *`,
     [novoStatus, pagamentoJson, txid]
   );
-  if (rows.length === 0) throw new Error('PEDIDO_NAO_ENCONTRADO');
-  return linhaParaPedido(rows[0]);
+  if (rows.length > 0) return linhaParaPedido(rows[0]);
+
+  const existente = await buscarPedidoPorTxid(txid);
+  if (!existente) throw new Error('PEDIDO_NAO_ENCONTRADO');
+  return existente; // ja estava pago/em entrega/entregue: nada a fazer
 }
 
 async function atribuirEntregador(pedidoId, entregadorId) {
