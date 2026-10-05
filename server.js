@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const db = require('./db');
 
 const rotasPublicas = require('./routes/publicas');
@@ -13,13 +14,28 @@ const app = express();
 const PORTA = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Cada deploy usa um endereco novo para o CSS e o JS (style.css?v=...).
+// Sem isso o navegador podia juntar um style.css antigo com um admin.js novo
+// logo depois de um deploy, e a tela aparecia quebrada.
+const VERSAO = (process.env.RAILWAY_GIT_COMMIT_SHA || String(Date.now())).slice(0, 12);
+const PAGINAS = { '/': 'index.html', '/index.html': 'index.html', '/admin': 'admin.html', '/admin.html': 'admin.html', '/consultar.html': 'consultar.html' };
+const htmlComVersao = {};
+for (const arquivo of new Set(Object.values(PAGINAS))) {
+  htmlComVersao[arquivo] = fs.readFileSync(path.join(__dirname, 'public', arquivo), 'utf8')
+    .replace(/(href|src)="(style\.css|app\.js|admin\.js|consultar\.js)"/g, `$1="$2?v=${VERSAO}"`);
+}
+app.get(Object.keys(PAGINAS), (req, res) => {
+  res.set('Cache-Control', 'no-cache').type('html').send(htmlComVersao[PAGINAS[req.path]]);
+});
+
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders(res, caminho) {
+    if (/\.(html|css|js)$/.test(caminho)) res.setHeader('Cache-Control', 'no-cache');
+  }
+}));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Atalho: /admin serve o painel do administrador (sem precisar do .html).
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
 
 app.use('/api', rotasPublicas);
 app.use('/api/admin', rotasAdmin);
