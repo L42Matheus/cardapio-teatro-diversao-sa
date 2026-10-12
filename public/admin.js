@@ -164,10 +164,15 @@ async function fazerLogin(ev) {
     return;
   }
 
-  // A conta da Policia so usa a pagina da prisao.
+  // As contas unicas so usam a sua pagina (Policia -> /prisao, Entrega -> /entregas).
   if (dados.papel === 'policia') {
     localStorage.setItem('sessaoPolicia', JSON.stringify(dados));
     window.location.href = '/prisao';
+    return;
+  }
+  if (dados.papel === 'entrega') {
+    localStorage.setItem('sessaoEntrega', JSON.stringify(dados));
+    window.location.href = '/entregas';
     return;
   }
 

@@ -89,6 +89,7 @@ Railway, configure as variáveis de ambiente do serviço:
 | `WEBHOOK_PIX_TOKEN` | Um token novo, diferente do usado em homologação |
 | `ADMIN_PASSWORD` | Senha forte para o usuário `teatro` (nunca deixar no default) |
 | `POLICIA_PASSWORD` | Senha da conta única da Polícia (usuário `policia`), usada na página `/prisao` |
+| `ENTREGA_PASSWORD` | Senha da conta única da Entrega (usuário `entrega`), usada na página `/entregas` (rosas e botons) |
 | `PORT` | Já é injetada automaticamente pelo Railway |
 
 Depois do primeiro deploy, pegue o domínio público gerado pelo Railway

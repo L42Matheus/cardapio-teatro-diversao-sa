@@ -71,12 +71,18 @@ router.post('/login', async (req, res) => {
 // A partir daqui, todas as rotas exigem login.
 router.use(autenticar);
 
-// A conta da Policia so usa a pagina /prisao: fora /me, /logout e /prisao/*,
-// nada do painel (pedidos, estoque, relatorio...) fica disponivel para ela.
+// As contas unicas so usam a sua pagina: a da Policia so /prisao e a da
+// Entrega so /entregas. Fora /me, /logout e as rotas da pagina, nada do
+// painel (pedidos, estoque, relatorio...) fica disponivel para elas.
+const ROTAS_CONTA_UNICA = {
+  policia: { prefixo: '/prisao/', erro: 'A conta da Polícia só acessa a página da prisão.' },
+  entrega: { prefixo: '/entregas/', erro: 'A conta da Entrega só acessa a página de entregas.' }
+};
 router.use((req, res, next) => {
-  if (req.usuarioAtual.papel !== 'policia') return next();
-  if (req.path === '/me' || req.path === '/logout' || req.path.startsWith('/prisao/')) return next();
-  res.status(403).json({ erro: 'A conta da Polícia só acessa a página da prisão.' });
+  const regra = ROTAS_CONTA_UNICA[req.usuarioAtual.papel];
+  if (!regra) return next();
+  if (req.path === '/me' || req.path === '/logout' || req.path.startsWith(regra.prefixo)) return next();
+  res.status(403).json({ erro: regra.erro });
 });
 
 // POST /api/admin/logout
@@ -367,5 +373,97 @@ router.post('/prisao/mandados/:id/fianca', exigirPolicia, async (req, res) => {
   if (!atualizado) return res.status(404).json({ erro: 'Preso não encontrado (a pessoa precisa estar na cela).' });
   res.json(mandadoParaPolicia(atualizado));
 });
+
+// ---- Entregas (pagina /entregas: conta da Entrega e admin) ----
+// Rosas e botons. A conta e unica, entao quem entrega informa o proprio nome
+// (fica no "Estou levando" e no "entregue por"). Usa as mesmas funcoes do
+// quadro do painel, entao os dois mostram sempre o mesmo estado.
+
+function exigirEntrega(req, res, next) {
+  if (req.usuarioAtual.papel !== 'entrega' && req.usuarioAtual.papel !== 'admin') {
+    return res.status(403).json({ erro: 'Apenas a equipe de entrega pode fazer isso.' });
+  }
+  next();
+}
+
+function nomeEntregador(req) {
+  const nome = String((req.body && req.body.entregador) || '').trim().replace(/\s+/g, ' ');
+  if (nome.length < 2 || nome.length > 40) return null;
+  return nome;
+}
+
+function pedidoParaEntrega(p) {
+  const entregue = p.status === 'entregue';
+  const aCaminho = !entregue && !!p.claimedBy;
+  return {
+    id: p.id,
+    codigo: p.codigo,
+    produto: p.produtoNome,
+    foto: p.produtoFoto || null,
+    para: p.nomeDestinatario,
+    equipe: p.equipeDestinatario,
+    de: p.anonimo ? null : p.nomeComprador,
+    mensagem: p.mensagemEspecial || null,
+    situacao: entregue ? 'entregue' : aCaminho ? 'a_caminho' : 'livre',
+    comQuem: aCaminho ? p.claimedBy : null,
+    reservaAtiva: aCaminho && db.reservaEstaAtiva(p),
+    criadoEm: p.criadoEm,
+    entregueEm: entregue ? p.atualizadoEm : null,
+    entreguePor: entregue ? p.equipeEntregou : null
+  };
+}
+
+async function pedidoDeEntrega(id) {
+  const pedido = await db.buscarPedido(id);
+  return pedido && db.CATEGORIAS_ENTREGA.includes(pedido.categoria) ? pedido : null;
+}
+
+const ERROS_ENTREGA = {
+  PEDIDO_NAO_ENCONTRADO: [404, 'Pedido não encontrado.'],
+  PEDIDO_NAO_DISPONIVEL: [409, 'Esse pedido não está mais disponível.'],
+  PEDIDO_JA_PEGO:        [409, 'Outra pessoa já está levando esse pedido.'],
+  PEDIDO_NAO_SEU:        [409, 'Esse pedido está com outra pessoa.'],
+  PEDIDO_DE_OUTRA_EQUIPE:[409, 'Esse pedido está com outra pessoa.'],
+  PEDIDO_JA_ENTREGUE:    [409, 'Esse pedido já foi entregue.'],
+  PEDIDO_NAO_PAGO:       [409, 'Esse pedido ainda não foi pago.']
+};
+
+function rotaEntrega(acao) {
+  return async (req, res) => {
+    const entregador = nomeEntregador(req);
+    if (!entregador) return res.status(400).json({ erro: 'Informe o seu nome (de 2 a 40 letras).' });
+    const pedido = await pedidoDeEntrega(req.params.id);
+    if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado.' });
+    if (pedido.status === 'entregue') return res.status(409).json({ erro: 'Esse pedido já foi entregue.' });
+    if (pedido.status !== 'pago' && pedido.status !== 'aguardando') {
+      return res.status(409).json({ erro: 'Esse pedido ainda não foi pago.' });
+    }
+    try {
+      await acao(pedido, entregador);
+      const atualizado = (await db.listarPedidosEntrega()).find(p => p.id === pedido.id);
+      res.json(atualizado ? pedidoParaEntrega(atualizado) : { ok: true });
+    } catch (err) {
+      const [codigo, msg] = ERROS_ENTREGA[err.message] || [500, 'Erro ao atualizar o pedido.'];
+      res.status(codigo).json({ erro: msg });
+    }
+  };
+}
+
+// GET /api/admin/entregas/pedidos -> rosas e botons a entregar e entregues
+router.get('/entregas/pedidos', exigirEntrega, async (req, res) => {
+  res.json((await db.listarPedidosEntrega()).map(pedidoParaEntrega));
+});
+
+// POST /api/admin/entregas/pedidos/:id/levar { entregador } -> "Estou levando"
+router.post('/entregas/pedidos/:id/levar', exigirEntrega,
+  rotaEntrega((pedido, entregador) => db.pegarPedido(pedido.id, entregador)));
+
+// POST /api/admin/entregas/pedidos/:id/desistir { entregador } -> devolve para "A entregar"
+router.post('/entregas/pedidos/:id/desistir', exigirEntrega,
+  rotaEntrega((pedido, entregador) => db.liberarPedido(pedido.id, entregador, false)));
+
+// POST /api/admin/entregas/pedidos/:id/entregar { entregador } -> entregue
+router.post('/entregas/pedidos/:id/entregar', exigirEntrega,
+  rotaEntrega((pedido, entregador) => db.marcarEntregue(pedido.id, entregador)));
 
 module.exports = router;

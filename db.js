@@ -244,23 +244,27 @@ async function iniciarBancoDados() {
     }
   }
 
-  // Conta unica da Policia (usuario "policia", papel 'policia'), usada pelos
-  // responsaveis da prisao na pagina /prisao. So existe se POLICIA_PASSWORD
-  // estiver definida (sem senha default); a senha e sincronizada a cada boot.
-  if (process.env.POLICIA_PASSWORD) {
-    const hashPolicia = hashSenha(process.env.POLICIA_PASSWORD);
-    await pool.query(
-      `INSERT INTO usuarios (usuario, senha_hash, papel, nome)
-       SELECT 'policia', $1, 'policia', 'Polícia'
-       WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE LOWER(usuario) = 'policia')`,
-      [hashPolicia]
-    );
-    await pool.query(
-      `UPDATE usuarios SET senha_hash = $1, papel = 'policia', nome = 'Polícia'
-       WHERE LOWER(usuario) = 'policia' AND (senha_hash <> $1 OR papel <> 'policia')`,
-      [hashPolicia]
-    );
-  }
+  // Contas unicas (uma senha compartilhada) das paginas /prisao e /entregas.
+  // So existem se a variavel da senha estiver definida (sem senha default);
+  // a senha e sincronizada a cada boot.
+  await sincronizarContaUnica('policia', 'policia', 'Polícia', process.env.POLICIA_PASSWORD);
+  await sincronizarContaUnica('entrega', 'entrega', 'Entrega', process.env.ENTREGA_PASSWORD);
+}
+
+async function sincronizarContaUnica(usuario, papel, nome, senha) {
+  if (!senha) return;
+  const hash = hashSenha(senha);
+  await pool.query(
+    `INSERT INTO usuarios (usuario, senha_hash, papel, nome)
+     SELECT $1, $2, $3, $4
+     WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE LOWER(usuario) = $1)`,
+    [usuario, hash, papel, nome]
+  );
+  await pool.query(
+    `UPDATE usuarios SET senha_hash = $2, papel = $3, nome = $4
+     WHERE LOWER(usuario) = $1 AND (senha_hash <> $2 OR papel <> $3)`,
+    [usuario, hash, papel, nome]
+  );
 }
 
 // ---- Mapeamento linha do banco -> objeto usado pelo resto do app ----
@@ -545,6 +549,20 @@ async function listarMandadosPrisao() {
   return rows.map(linhaParaPedido);
 }
 
+// Pedidos da pagina /entregas (rosas e botons): pagos (a entregar ou a
+// caminho) e ja entregues, com a foto do produto para o entregador.
+const CATEGORIAS_ENTREGA = ['rosa', 'boton'];
+async function listarPedidosEntrega() {
+  const { rows } = await pool.query(
+    `SELECT p.*, pr.foto AS produto_foto FROM pedidos p
+     LEFT JOIN produtos pr ON pr.id = p.produto_id
+     WHERE p.categoria = ANY($1) AND p.status IN ('pago', 'aguardando', 'entregue')
+     ORDER BY p.id`,
+    [CATEGORIAS_ENTREGA]
+  );
+  return rows.map(r => ({ ...linhaParaPedido(r), produtoFoto: r.produto_foto || null }));
+}
+
 // Marca (ou desmarca, se a Policia clicou errado) a fianca de um preso.
 // So vale para pedidos de prisao ja capturados (status 'entregue'). Nao mexe
 // em atualizado_em, que a /prisao usa como horario da captura.
@@ -750,6 +768,9 @@ async function removerUsuario(id) {
 }
 
 module.exports = {
+  CATEGORIAS_ENTREGA,
+  listarPedidosEntrega,
+  reservaEstaAtiva,
   marcarFiancaPrisao,
   listarMandadosPrisao,
   arquivarTodosPedidos,
