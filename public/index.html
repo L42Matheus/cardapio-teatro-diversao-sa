@@ -125,6 +125,25 @@
   </div>
 </div>
 
+<!-- Prisao: depois do Pix, tela de "a Policia EAC esta a caminho" -->
+<div id="popup-policia" class="popup-overlay popup-policia oculto">
+  <div class="popup-card policia-card">
+    <div class="policia-luzes" aria-hidden="true"><span></span><span></span></div>
+    <img id="popup-policia-foto" class="policia-foto" src="" alt="Policial da Polícia EAC">
+    <div class="policia-confirmado">✅ Pagamento confirmado!</div>
+    <h2>🚨 A Polícia EAC está a caminho</h2>
+    <p id="popup-policia-texto">O mandado foi expedido e a nossa polícia já saiu atrás do suspeito.</p>
+    <div class="policia-barra" aria-hidden="true"><span></span></div>
+    <div class="policia-final">
+      <div class="ticket-box">
+        <div style="font-size:0.75rem; color:var(--texto-fraco); text-transform:uppercase;">Seu código</div>
+        <div class="numero" id="popup-policia-ticket"></div>
+      </div>
+      <button class="destaque botao-cheio" onclick="fecharPopupPolicia()">Entendi</button>
+    </div>
+  </div>
+</div>
+
 <footer class="eac-rodape">
   Feito com <span>&#10084;</span> pela equipe do <strong>EAC Santo Antônio</strong>
 </footer>

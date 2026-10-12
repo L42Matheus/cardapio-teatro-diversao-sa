@@ -508,7 +508,7 @@ function iniciarPollingStatus(ticket) {
         `Status: <span class="status-${dados.status}">${legendaStatus(dados.status)}</span> — pagamento confirmado! Guarde seu código <strong>${dados.ticket}</strong>.`;
       clearInterval(intervaloConsulta);
       pararContagemExpiracao();
-      mostrarPopupPagamento(dados.ticket);
+      if (!mostrarPopupPolicia(dados)) mostrarPopupPagamento(dados.ticket);
     }
   }, 2000);
 }
@@ -549,6 +549,34 @@ function pararContagemExpiracao() {
 function mostrarPopupPagamento(ticket) {
   document.getElementById('popup-pagamento-ticket').textContent = ticket;
   document.getElementById('popup-pagamento').classList.remove('oculto');
+}
+
+// Prisao: em vez do popup comum, mostra a tela "A Policia EAC esta a
+// caminho" com a foto do policial. Por produto (id), para cada tipo de
+// prisao poder ter a sua foto; hoje so a Prisao normal (20) tem.
+const FOTO_POLICIA_A_CAMINHO = {
+  20: '/uploads/prisao/policial-a-caminho.jpg'
+};
+
+function mostrarPopupPolicia(dados) {
+  const foto = FOTO_POLICIA_A_CAMINHO[Number(produtoSelecionado)];
+  if (!foto) return false;
+  const nomes = (Array.isArray(dados.itens) && dados.itens.length ? dados.itens.map(i => i.destinatario) : [dados.destinatario])
+    .filter(Boolean);
+  document.getElementById('popup-policia-foto').src = foto;
+  document.getElementById('popup-policia-texto').textContent = nomes.length
+    ? `O mandado foi expedido e a nossa polícia já saiu atrás de ${nomes.join(', ')}.`
+    : 'O mandado foi expedido e a nossa polícia já saiu atrás do suspeito.';
+  document.getElementById('popup-policia-ticket').textContent = dados.ticket;
+  const popup = document.getElementById('popup-policia');
+  popup.classList.remove('pronto', 'oculto');
+  // "Carregando" por alguns segundos, depois mostra o codigo e o botao.
+  setTimeout(() => popup.classList.add('pronto'), 3500);
+  return true;
+}
+
+function fecharPopupPolicia() {
+  document.getElementById('popup-policia').classList.add('oculto');
 }
 
 function fecharPopupPagamento() {
