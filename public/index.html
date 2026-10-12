@@ -46,9 +46,14 @@
   </section>
 
   <section id="secao-formulario" class="card oculto">
+    <div id="faixa-delegacia" class="faixa-delegacia oculto">
+      <div class="faixa-delegacia-luzes" aria-hidden="true"><span></span><span></span></div>
+      <strong>🚔 Delegacia EAC</strong>
+      <span>Como podemos ajudá-lo? Registre a denúncia e a nossa polícia vai atrás do suspeito.</span>
+    </div>
     <div class="etapa-head">
-      <h2>1. Quem está enviando?</h2>
-      <label class="check-opcao check-anonimo" title="Enviar anônimo" aria-label="Enviar anônimo">
+      <h2 id="txt-etapa-1">1. Quem está enviando?</h2>
+      <label class="check-opcao check-anonimo" id="check-anonimo" title="Enviar anônimo" aria-label="Enviar anônimo">
         <span aria-hidden="true">🕵️</span>
         <input id="anonimo" type="checkbox">
       </label>
@@ -60,17 +65,17 @@
       <input id="contato" type="tel" inputmode="tel" maxlength="16" placeholder="(83) 90000-0000">
     </label>
 
-    <h2 class="form-etapa">2. Quem vai receber?</h2>
-    <label>Nome de quem vai receber
+    <h2 class="form-etapa" id="txt-etapa-2">2. Quem vai receber?</h2>
+    <label><span id="txt-nome-destinatario">Nome de quem vai receber</span>
       <input id="nomeDestinatario" type="text" minlength="4" maxlength="80" placeholder="Nome de quem receberá a surpresa">
     </label>
-    <label>Equipe do destinatário
+    <label><span id="txt-equipe-destinatario">Equipe do destinatário</span>
       <select id="equipeDestinatario">
         <option value="">Escolha a equipe...</option>
       </select>
     </label>
-    <h2 class="form-etapa">3. Mensagem ou instrução especial</h2>
-    <label>Mensagem ou instrução especial
+    <h2 class="form-etapa" id="txt-etapa-3">3. Mensagem ou instrução especial</h2>
+    <label><span id="txt-mensagem">Mensagem ou instrução especial</span>
       <textarea id="mensagemEspecial" rows="2" maxlength="50" placeholder="Recado curto, até 50 caracteres"></textarea>
     </label>
     <div id="form-erro" class="aviso erro oculto"></div>

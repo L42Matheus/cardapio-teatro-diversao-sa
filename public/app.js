@@ -133,7 +133,7 @@ function renderizarProdutos() {
       <p class="descricao">${p.descricao || ''}</p>
       <div class="preco">R$ ${p.preco.toFixed(2).replace('.', ',')}</div>
       ${textoEstoque(p.estoque)}
-      <button class="destaque" ${(pedidosPausados || esgotado) ? 'disabled' : ''} onclick="abrirFormulario(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">${esgotado ? 'Esgotado' : 'Enviar este'}</button>
+      <button class="destaque" ${(pedidosPausados || esgotado) ? 'disabled' : ''} onclick="abrirFormulario(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">${esgotado ? 'Esgotado' : (p.categoria === 'prisao' ? '🚔 Denunciar' : 'Enviar este')}</button>
     `;
     container.appendChild(div);
   });
@@ -161,6 +161,7 @@ function abrirFormularioNaPagina(id, nome, opcoes = {}) {
   destinatariosPedido = [];
   const produto = produtos.find(p => Number(p.id) === Number(id));
   if (produto) preencherResumoPedido(produto);
+  aplicarTemaFormulario(produto);
   document.getElementById('secao-formulario').classList.remove('oculto');
   document.getElementById('secao-pix').classList.add('oculto');
   document.getElementById('form-erro').classList.add('oculto');
@@ -172,6 +173,69 @@ function abrirFormularioNaPagina(id, nome, opcoes = {}) {
       behavior: 'smooth'
     });
   }
+}
+
+// Textos do formulario. Para a prisao o formulario vira uma "denuncia" na
+// Delegacia EAC; os outros produtos usam os textos normais.
+const TEXTOS_FORMULARIO = {
+  padrao: {
+    etapa1: '1. Quem está enviando?',
+    anonimo: 'Enviar anônimo',
+    etapa2: '2. Quem vai receber?',
+    nome: 'Nome de quem vai receber',
+    nomePlaceholder: 'Nome de quem receberá a surpresa',
+    equipe: 'Equipe do destinatário',
+    etapa3: '3. Mensagem ou instrução especial',
+    mensagem: 'Mensagem ou instrução especial',
+    mensagemPlaceholder: 'Recado curto, até 50 caracteres',
+    tituloLista: n => `${n} pessoa${n > 1 ? 's' : ''} adicionada${n > 1 ? 's' : ''}`,
+    maisUma: 'Enviar para mais uma pessoa',
+    adicionar: 'Adicionar esta pessoa à lista',
+    gerar: 'Gerar cobrança Pix',
+    gerarVarios: n => `Gerar Pix para ${n} pessoa${n > 1 ? 's' : ''}`
+  },
+  prisao: {
+    etapa1: '1. Quem está denunciando?',
+    anonimo: 'Denúncia anônima',
+    etapa2: '2. Quem deve ser preso?',
+    nome: 'Nome do suspeito',
+    nomePlaceholder: 'Nome de quem vai para a prisão',
+    equipe: 'Equipe do suspeito',
+    etapa3: '3. Qual foi o crime?',
+    mensagem: 'Motivo da prisão',
+    mensagemPlaceholder: 'Ex.: furou a fila do lanche',
+    tituloLista: n => `${n} suspeito${n > 1 ? 's' : ''} na lista`,
+    maisUma: 'Denunciar mais uma pessoa',
+    adicionar: 'Adicionar este suspeito à lista',
+    gerar: 'Gerar Pix do mandado',
+    gerarVarios: n => `Gerar Pix para ${n} mandado${n > 1 ? 's' : ''}`
+  }
+};
+let textosFormulario = TEXTOS_FORMULARIO.padrao;
+
+function aplicarTemaFormulario(produto) {
+  const prisao = !!produto && produto.categoria === 'prisao';
+  const t = { ...(prisao ? TEXTOS_FORMULARIO.prisao : TEXTOS_FORMULARIO.padrao) };
+  if (prisao && /padre/i.test(produto.nome)) {
+    Object.assign(t, { etapa2: '2. Qual padre deve ser preso?', nome: 'Nome do padre', nomePlaceholder: 'Ex.: Padre João', equipe: 'Equipe do padre' });
+  } else if (prisao && /coordenador/i.test(produto.nome)) {
+    Object.assign(t, { etapa2: '2. Qual coordenador deve ser preso?', nome: 'Nome do coordenador', nomePlaceholder: 'Nome do coordenador', equipe: 'Equipe do coordenador' });
+  }
+  textosFormulario = t;
+
+  document.getElementById('secao-formulario').classList.toggle('modo-prisao', prisao);
+  document.getElementById('faixa-delegacia').classList.toggle('oculto', !prisao);
+  document.getElementById('txt-etapa-1').textContent = t.etapa1;
+  const anonimo = document.getElementById('check-anonimo');
+  anonimo.title = t.anonimo;
+  anonimo.setAttribute('aria-label', t.anonimo);
+  document.getElementById('txt-etapa-2').textContent = t.etapa2;
+  document.getElementById('txt-nome-destinatario').textContent = t.nome;
+  document.getElementById('nomeDestinatario').placeholder = t.nomePlaceholder;
+  document.getElementById('txt-equipe-destinatario').textContent = t.equipe;
+  document.getElementById('txt-etapa-3').textContent = t.etapa3;
+  document.getElementById('txt-mensagem').textContent = t.mensagem;
+  document.getElementById('mensagemEspecial').placeholder = t.mensagemPlaceholder;
 }
 
 function preencherResumoPedido(produto) {
@@ -228,14 +292,14 @@ function atualizarBotoesPedido() {
   if (btnAdicionar) {
     btnAdicionar.disabled = !destinatarioAtualCompleto();
     btnAdicionar.textContent = destinatariosPedido.length > 0
-      ? 'Adicionar esta pessoa à lista'
-      : 'Enviar para mais uma pessoa';
+      ? textosFormulario.adicionar
+      : textosFormulario.maisUma;
   }
 
   if (btnGerar) {
     btnGerar.textContent = quantidade > 0
-      ? `Gerar Pix para ${quantidade} pessoa${quantidade > 1 ? 's' : ''}`
-      : 'Gerar cobrança Pix';
+      ? textosFormulario.gerarVarios(quantidade)
+      : textosFormulario.gerar;
   }
 }
 
@@ -260,7 +324,7 @@ function renderizarDestinatariosPedido() {
 
   box.classList.remove('oculto');
   box.innerHTML = `
-    <div class="destinatarios-titulo">${destinatariosPedido.length} pessoa${destinatariosPedido.length > 1 ? 's' : ''} adicionada${destinatariosPedido.length > 1 ? 's' : ''}</div>
+    <div class="destinatarios-titulo">${textosFormulario.tituloLista(destinatariosPedido.length)}</div>
     ${destinatariosPedido.map((d, i) => `
       <div class="destinatario-item">
         <span><strong>${i + 1}. ${esc(d.nomeDestinatario)}</strong><br><small>${esc(d.equipeDestinatario)}</small></span>

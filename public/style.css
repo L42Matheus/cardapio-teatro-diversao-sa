@@ -448,6 +448,30 @@ button.destaque:hover:not(:disabled) { background: var(--amarelo-esc); color: va
   color: var(--azul-esc);
   text-decoration: underline;
 }
+/* Formulario em "modo prisao": vira uma denuncia na Delegacia EAC */
+.faixa-delegacia {
+  background: #0f1b30;
+  color: #eef2fb;
+  border-radius: 8px;
+  padding: 14px 16px 14px;
+  margin: -4px 0 16px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.faixa-delegacia strong { font-size: 1.15rem; letter-spacing: 0.5px; }
+.faixa-delegacia > span { font-size: 0.9rem; color: #c3cee6; }
+.faixa-delegacia-luzes { position: absolute; top: 0; left: 0; right: 0; height: 5px; display: flex; }
+.faixa-delegacia-luzes span { flex: 1; }
+.faixa-delegacia-luzes span:first-child { background: #e53935; animation: delegacia-r 1s infinite; }
+.faixa-delegacia-luzes span:last-child { background: #2f7bff; animation: delegacia-a 1s infinite; }
+@keyframes delegacia-r { 0%, 49% { opacity: 1; } 50%, 100% { opacity: .25; } }
+@keyframes delegacia-a { 0%, 49% { opacity: .25; } 50%, 100% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .faixa-delegacia-luzes span { animation: none !important; } }
+.modo-prisao .form-etapa, .modo-prisao .etapa-head h2 { color: #0f1b30; }
+
 .pedido-resumo {
   display: flex;
   align-items: center;
