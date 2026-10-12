@@ -125,6 +125,25 @@
   </div>
 </div>
 
+<!-- Rosas e botons: depois do Pix, tela de agradecimento -->
+<div id="popup-obrigado" class="popup-overlay popup-obrigado oculto">
+  <div class="popup-card obrigado-card">
+    <div class="obrigado-coracoes" aria-hidden="true"><span>💛</span><span>❤️</span><span>💛</span><span>🤍</span><span>❤️</span><span>💛</span></div>
+    <div class="obrigado-foto"><img id="popup-obrigado-foto" src="" alt=""></div>
+    <div class="obrigado-confirmado">✅ Pagamento confirmado!</div>
+    <h2>Obrigado pelo carinho! 💛</h2>
+    <p id="popup-obrigado-texto">A nossa equipe de entrega já vai levar o seu presente.</p>
+    <div class="obrigado-barra" aria-hidden="true"><span></span></div>
+    <div class="obrigado-final">
+      <div class="ticket-box">
+        <div style="font-size:0.75rem; color:var(--texto-fraco); text-transform:uppercase;">Seu código</div>
+        <div class="numero" id="popup-obrigado-ticket"></div>
+      </div>
+      <button class="destaque botao-cheio" onclick="fecharPopupObrigado()">Entendi</button>
+    </div>
+  </div>
+</div>
+
 <!-- Prisao: depois do Pix, tela de "a Policia EAC esta a caminho" -->
 <div id="popup-policia" class="popup-overlay popup-policia oculto">
   <div class="popup-card policia-card">

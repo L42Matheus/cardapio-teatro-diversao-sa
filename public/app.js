@@ -508,7 +508,7 @@ function iniciarPollingStatus(ticket) {
         `Status: <span class="status-${dados.status}">${legendaStatus(dados.status)}</span> — pagamento confirmado! Guarde seu código <strong>${dados.ticket}</strong>.`;
       clearInterval(intervaloConsulta);
       pararContagemExpiracao();
-      if (!mostrarPopupPolicia(dados)) mostrarPopupPagamento(dados.ticket);
+      if (!mostrarPopupPolicia(dados) && !mostrarPopupObrigado(dados)) mostrarPopupPagamento(dados.ticket);
     }
   }, 2000);
 }
@@ -565,7 +565,7 @@ function mostrarPopupPolicia(dados) {
     .filter(Boolean);
   document.getElementById('popup-policia-foto').src = foto;
   document.getElementById('popup-policia-texto').textContent = nomes.length
-    ? `O mandado foi expedido e a nossa polícia já saiu atrás de ${nomes.join(', ')}.`
+    ? `O mandado foi expedido e a nossa polícia já saiu atrás de ${juntarNomes(nomes)}.`
     : 'O mandado foi expedido e a nossa polícia já saiu atrás do suspeito.';
   document.getElementById('popup-policia-ticket').textContent = dados.ticket;
   const popup = document.getElementById('popup-policia');
@@ -573,6 +573,36 @@ function mostrarPopupPolicia(dados) {
   // "Carregando" por alguns segundos, depois mostra o codigo e o botao.
   setTimeout(() => popup.classList.add('pronto'), 3500);
   return true;
+}
+
+// "Ana", "Ana e Bruno", "Ana, Bruno e Carla"
+function juntarNomes(nomes) {
+  return nomes.length > 1 ? `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}` : (nomes[0] || '');
+}
+
+// Rosas e botons: tela de agradecimento com a foto do produto comprado.
+const CATEGORIAS_OBRIGADO = ['rosa', 'boton'];
+
+function mostrarPopupObrigado(dados) {
+  const produto = produtos.find(p => Number(p.id) === Number(produtoSelecionado));
+  if (!produto || !CATEGORIAS_OBRIGADO.includes(produto.categoria)) return false;
+  const nomes = (Array.isArray(dados.itens) && dados.itens.length ? dados.itens.map(i => i.destinatario) : [dados.destinatario])
+    .filter(Boolean);
+  const foto = document.getElementById('popup-obrigado-foto');
+  foto.src = produto.foto;
+  foto.alt = produto.nome;
+  document.getElementById('popup-obrigado-texto').textContent = nomes.length
+    ? `A nossa equipe de entrega já vai levar ${produto.nome} para ${juntarNomes(nomes)}.`
+    : `A nossa equipe de entrega já vai levar ${produto.nome}.`;
+  document.getElementById('popup-obrigado-ticket').textContent = dados.ticket;
+  const popup = document.getElementById('popup-obrigado');
+  popup.classList.remove('pronto', 'oculto');
+  setTimeout(() => popup.classList.add('pronto'), 3500);
+  return true;
+}
+
+function fecharPopupObrigado() {
+  document.getElementById('popup-obrigado').classList.add('oculto');
 }
 
 function fecharPopupPolicia() {
