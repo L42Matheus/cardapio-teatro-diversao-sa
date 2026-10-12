@@ -90,6 +90,11 @@ function nomeCategoria(id) {
   return c ? `${c.emoji} ${c.nome}` : id;
 }
 
+// Escapa texto antes de colocar em innerHTML (nomes e equipes digitados).
+function esc(texto) {
+  return String(texto ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 // Estoque no card: verde quando tem bastante, vermelho com urgencia quando
 // esta acabando (ate ESTOQUE_ULTIMAS unidades) e "Esgotado" quando zera.
 const ESTOQUE_ULTIMAS = 10;
@@ -258,7 +263,7 @@ function renderizarDestinatariosPedido() {
     <div class="destinatarios-titulo">${destinatariosPedido.length} pessoa${destinatariosPedido.length > 1 ? 's' : ''} adicionada${destinatariosPedido.length > 1 ? 's' : ''}</div>
     ${destinatariosPedido.map((d, i) => `
       <div class="destinatario-item">
-        <span><strong>${i + 1}. ${d.nomeDestinatario}</strong><br><small>${d.equipeDestinatario}</small></span>
+        <span><strong>${i + 1}. ${esc(d.nomeDestinatario)}</strong><br><small>${esc(d.equipeDestinatario)}</small></span>
         ${d.anonimo ? '<span class="pill-info">Anônimo</span>' : ''}
         <button class="secundario pequeno" onclick="removerDestinatario(${i})">Remover</button>
       </div>
@@ -420,7 +425,7 @@ function renderizarItensPix(itens) {
     <div class="destinatarios-titulo">${itens.length} entregas neste pedido</div>
     ${itens.map((item, i) => `
       <div class="destinatario-item sem-acao">
-        <span><strong>${i + 1}. ${item.destinatario}</strong><br><small>${item.equipe}</small></span>
+        <span><strong>${i + 1}. ${esc(item.destinatario)}</strong><br><small>${esc(item.equipe)}</small></span>
         ${item.anonimo ? '<span class="pill-info">Anônimo</span>' : ''}
         <span>${Number(item.valor).toFixed(2).replace('.', ',')}</span>
       </div>

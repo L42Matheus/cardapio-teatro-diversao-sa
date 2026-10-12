@@ -40,10 +40,17 @@ function statusPedido(status) {
   return `<span class="status-chip status-${status}">${nomes[status] || status || '-'}</span>`;
 }
 
+// Escapa texto antes de colocar em innerHTML. Nomes, equipes, contato e
+// mensagem sao digitados por quem compra: sem isso, um "nome" com HTML/JS
+// rodaria no navegador de quem abre o painel.
+function esc(texto) {
+  return String(texto ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 function mensagemCurta(texto) {
   const msg = String(texto || '').trim();
   if (!msg) return '<span style="color:var(--texto-fraco);">—</span>';
-  return msg.length > 50 ? `${msg.slice(0, 50)}...` : msg;
+  return esc(msg.length > 50 ? `${msg.slice(0, 50)}...` : msg);
 }
 
 function minutosDesde(iso) {
@@ -131,7 +138,7 @@ function renderSeletorEquipe() {
   botoes.innerHTML = entregadoresCache.map((e, i) => `
     <button type="button"
             class="perfil-login${equipeOperacao === e.nome ? ' ativo' : ''}"
-            onclick="selecionarEquipeOperacao('${e.nome.replace(/'/g, "\\'")}')">
+            onclick="selecionarEquipeOperacao('${esc(e.nome.replace(/\\/g, '\\\\').replace(/'/g, "\\'"))}')">
       Equipe ${i + 1}
     </button>
   `).join('');
@@ -198,7 +205,7 @@ async function mostrarPainel() {
 
   const ehAdmin = sessao.papel === 'admin';
   document.getElementById('badge-equipe').innerHTML =
-    `Logado como <strong>${sessao.nome}</strong> (${ehAdmin ? 'admin' : 'equipe'}) ` +
+    `Logado como <strong>${esc(sessao.nome)}</strong> (${ehAdmin ? 'admin' : 'equipe'}) ` +
     `<a href="#" onclick="event.preventDefault(); sair();" style="margin-left:8px; font-size:0.8rem;">sair</a>`;
   // Aba "Estoque" so aparece para admin.
   document.getElementById('aba-estoque').classList.toggle('oculto', !ehAdmin);
@@ -282,7 +289,7 @@ function renderEstoque() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td data-label="Produto" class="estoque-produto">
-        <strong>${p.nome}</strong><br>
+        <strong>${esc(p.nome)}</strong><br>
         <small style="color:var(--texto-fraco);">${nomeCategoria(p.categoria)}</small>
       </td>
       <td data-label="Preço (R$)" class="estoque-preco">
@@ -461,12 +468,12 @@ function renderListaResumo(pedidos) {
   lista.forEach(p => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td data-label="Ticket"><strong>${p.codigo || '#' + p.id}</strong></td>
+      <td data-label="Ticket"><strong>${esc(p.codigo || '#' + p.id)}</strong></td>
       <td data-label="Feito em">${formatarDataHora(p.criadoEm)}</td>
-      <td data-label="Produto">${p.produtoNome}</td>
-      <td data-label="Destinatário">${p.nomeDestinatario}</td>
-      <td data-label="Equipe">${p.equipeDestinatario || '—'}</td>
-      <td data-label="Comprador">${p.anonimo ? 'Anônimo' : p.nomeComprador}</td>
+      <td data-label="Produto">${esc(p.produtoNome)}</td>
+      <td data-label="Destinatário">${esc(p.nomeDestinatario)}</td>
+      <td data-label="Equipe">${esc(p.equipeDestinatario || '—')}</td>
+      <td data-label="Comprador">${p.anonimo ? 'Anônimo' : esc(p.nomeComprador)}</td>
       <td data-label="Valor">${formatarBRL(p.valor)}</td>
       <td data-label="Status">${statusResumo(p)}</td>
     `;
@@ -478,7 +485,7 @@ function renderListaResumo(pedidos) {
 // com o numero do card), dizendo embaixo se esta livre ou com qual equipe.
 function statusResumo(p) {
   if (p.status !== 'pago' && p.status !== 'aguardando') return statusPedido(p.status);
-  const onde = p.claimedBy && reservaAtiva(p) ? `com ${p.claimedBy}` : 'livre, ninguém pegou';
+  const onde = p.claimedBy && reservaAtiva(p) ? `com ${esc(p.claimedBy)}` : 'livre, ninguém pegou';
   return `${statusPedido('aguardando')}<br><small style="color:var(--texto-fraco);">${onde}</small>`;
 }
 
@@ -541,13 +548,13 @@ function gerarRelatorioCompensados() {
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td data-label="Ticket"><strong>${p.codigo || '#' + p.id}</strong></td>
-      <td data-label="Produto">${p.produtoNome}</td>
+      <td data-label="Ticket"><strong>${esc(p.codigo || '#' + p.id)}</strong></td>
+      <td data-label="Produto">${esc(p.produtoNome)}</td>
       <td data-label="Valor">${formatarBRL(valorExibido)}</td>
       <td data-label="Confirmado em">${formatarDataHora(horarioConfirmacaoPedido(p))}</td>
       <td data-label="Origem">${origemHTML}</td>
-      <td data-label="End-to-End ID (Efi)"><small class="codigo-longo">${(pagamento && pagamento.endToEndId) || '—'}</small></td>
-      <td data-label="TXID (cobrança)"><small class="codigo-longo">${p.pixTxid || '—'}</small></td>
+      <td data-label="End-to-End ID (Efi)"><small class="codigo-longo">${esc((pagamento && pagamento.endToEndId) || '—')}</small></td>
+      <td data-label="TXID (cobrança)"><small class="codigo-longo">${esc(p.pixTxid || '—')}</small></td>
       <td data-label="Status atual">${statusPedido(p.status)}</td>
     `;
     corpo.appendChild(tr);
@@ -600,20 +607,20 @@ function renderTodos() {
   lista.forEach(p => {
     const tr = document.createElement('tr');
     const compradorHTML = p.anonimo
-      ? `<span style="color:var(--texto-fraco); font-weight:600;">Anônimo</span><br><small>${p.contato || ''}</small>`
-      : `${p.nomeComprador || '-'}<br><small>${p.contato || ''}</small>`;
+      ? `<span style="color:var(--texto-fraco); font-weight:600;">Anônimo</span><br><small>${esc(p.contato || '')}</small>`
+      : `${esc(p.nomeComprador || '-')}<br><small>${esc(p.contato || '')}</small>`;
     const acaoHTML = (ehAdmin && p.status === 'pendente_pagamento')
       ? `<button class="secundario pequeno" onclick="simularPagamentoAdmin(${p.id})">Marcar como pago</button>`
       : '<span style="color:var(--texto-fraco);">—</span>';
 
     tr.innerHTML = `
-      <td data-label="Ticket"><strong>${p.codigo || '#' + p.id}</strong></td>
+      <td data-label="Ticket"><strong>${esc(p.codigo || '#' + p.id)}</strong></td>
       <td data-label="Status">${statusPedido(p.status)}</td>
       <td data-label="Hora">${formatarHora(p.criadoEm)}</td>
-      <td data-label="Categoria">${nomeCategoria(p.categoria)}</td>
-      <td data-label="Produto">${p.produtoNome}</td>
-      <td data-label="Destinatário"><strong>${p.nomeDestinatario}</strong></td>
-      <td data-label="Equipe">${p.equipeDestinatario || '<span style="color:var(--texto-fraco);">—</span>'}</td>
+      <td data-label="Categoria">${esc(nomeCategoria(p.categoria))}</td>
+      <td data-label="Produto">${esc(p.produtoNome)}</td>
+      <td data-label="Destinatário"><strong>${esc(p.nomeDestinatario)}</strong></td>
+      <td data-label="Equipe">${p.equipeDestinatario ? esc(p.equipeDestinatario) : '<span style="color:var(--texto-fraco);">—</span>'}</td>
       <td data-label="Comprador">${compradorHTML}</td>
       <td data-label="Mensagem">${mensagemCurta(p.mensagemEspecial)}</td>
       <td data-label="Valor">${formatarBRL(p.valor)}</td>
@@ -681,21 +688,21 @@ function cardPedidoKanban(p, estado, ehProximo) {
       <button class="botao-entregue" onclick="entregar(${p.id})">✓ Entregue</button>
       <button class="secundario" onclick="liberar(${p.id}, false)">Liberar</button>`;
   } else {
-    selo = `<span class="kanban-selo">🔒 ${p.claimedBy} · ${minutosDesde(p.claimedAt)} min</span>`;
+    selo = `<span class="kanban-selo">🔒 ${esc(p.claimedBy)} · ${minutosDesde(p.claimedAt)} min</span>`;
     acoes = `<button class="secundario" onclick="liberar(${p.id}, true)" title="Só use se souber que a equipe desistiu">Forçar liberação</button>`;
   }
   return `
     <article class="kanban-card card-${estado}" data-pedido-id="${p.id}">
       <div class="kanban-card-topo">
-        <span><strong>${p.codigo || '#' + p.id}</strong> · ${formatarHora(p.criadoEm)}</span>
+        <span><strong>${esc(p.codigo || '#' + p.id)}</strong> · ${formatarHora(p.criadoEm)}</span>
         <span>${formatarBRL(p.valor)}</span>
       </div>
       ${selo}
       <div class="kanban-info">
         <div class="kanban-linha kanban-linha-para" title="Para quem"><span class="kanban-icone" aria-label="Para">📍</span>
-          <span><span class="kanban-destinatario">${p.nomeDestinatario}</span> · <span class="kanban-equipe">${p.equipeDestinatario || 'sem equipe'}</span></span></div>
-        <div class="kanban-linha" title="Produto"><span class="kanban-icone" aria-label="Produto">🎁</span><span>${p.produtoNome}</span></div>
-        <div class="kanban-linha" title="De quem"><span class="kanban-icone" aria-label="De">👤</span><span><small>de</small> ${comprador || '—'}</span></div>
+          <span><span class="kanban-destinatario">${esc(p.nomeDestinatario)}</span> · <span class="kanban-equipe">${esc(p.equipeDestinatario || 'sem equipe')}</span></span></div>
+        <div class="kanban-linha" title="Produto"><span class="kanban-icone" aria-label="Produto">🎁</span><span>${esc(p.produtoNome)}</span></div>
+        <div class="kanban-linha" title="De quem"><span class="kanban-icone" aria-label="De">👤</span><span><small>de</small> ${esc(comprador || '—')}</span></div>
         <div class="kanban-linha" title="Mensagem"><span class="kanban-icone" aria-label="Mensagem">💬</span>
           <span class="${mensagem ? 'kanban-mensagem' : 'kanban-sem-mensagem'}">${mensagem ? mensagemCurta(mensagem) : 'sem mensagem'}</span></div>
       </div>
@@ -732,7 +739,7 @@ function renderPendentes() {
           const equipe = p.equipeDestinatario || 'Sem equipe';
           const novaEquipe = porEquipe && (i === 0 || (pedidos[i - 1].equipeDestinatario || 'Sem equipe') !== equipe);
           const qtdEquipe = pedidos.filter(x => (x.equipeDestinatario || 'Sem equipe') === equipe).length;
-          return (novaEquipe ? `<div class="kanban-grupo">📍 ${equipe} <span>${qtdEquipe}</span></div>` : '')
+          return (novaEquipe ? `<div class="kanban-grupo">📍 ${esc(equipe)} <span>${qtdEquipe}</span></div>` : '')
             + cardPedidoKanban(p, col.chave, p === proximo);
         }).join('')
       : `<div class="kanban-vazio">${col.vazio}</div>`;
@@ -827,16 +834,16 @@ function renderEntregues() {
     const tr = document.createElement('tr');
     const compradorHTML = p.anonimo
       ? '<span style="color:var(--texto-fraco); font-weight:600;">Anônimo</span>'
-      : p.nomeComprador;
+      : esc(p.nomeComprador);
 
     tr.innerHTML = `
-      <td data-label="Ticket"><strong>${p.codigo || '#' + p.id}</strong></td>
+      <td data-label="Ticket"><strong>${esc(p.codigo || '#' + p.id)}</strong></td>
       <td data-label="Entregue em">${formatarDataHora(p.atualizadoEm)}</td>
-      <td data-label="Por">${p.equipeEntregou || '<span style="color:var(--texto-fraco);">—</span>'}</td>
-      <td data-label="Categoria">${nomeCategoria(p.categoria)}</td>
-      <td data-label="Produto">${p.produtoNome}</td>
-      <td data-label="Destinatário">${p.nomeDestinatario}</td>
-      <td data-label="Equipe">${p.equipeDestinatario || '<span style="color:var(--texto-fraco);">—</span>'}</td>
+      <td data-label="Por">${p.equipeEntregou ? esc(p.equipeEntregou) : '<span style="color:var(--texto-fraco);">—</span>'}</td>
+      <td data-label="Categoria">${esc(nomeCategoria(p.categoria))}</td>
+      <td data-label="Produto">${esc(p.produtoNome)}</td>
+      <td data-label="Destinatário">${esc(p.nomeDestinatario)}</td>
+      <td data-label="Equipe">${p.equipeDestinatario ? esc(p.equipeDestinatario) : '<span style="color:var(--texto-fraco);">—</span>'}</td>
       <td data-label="Comprador">${compradorHTML}</td>
       <td data-label="Mensagem">${mensagemCurta(p.mensagemEspecial)}</td>
       <td data-label="Valor">${formatarBRL(p.valor)}</td>
@@ -923,7 +930,7 @@ async function pegar(pedidoId) {
   const dados = await res.json();
   if (!res.ok) { alert(dados.erro || 'Erro ao pegar.'); carregarPedidos(); return; }
   await carregarPedidos();
-  mostrarAvisoKanban(`<strong>${dados.nomeDestinatario || 'Pedido'}</strong> foi para “Comigo”`);
+  mostrarAvisoKanban(`<strong>${esc(dados.nomeDestinatario || 'Pedido')}</strong> foi para “Comigo”`);
 }
 
 async function liberar(pedidoId, forcado) {

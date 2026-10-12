@@ -1,3 +1,9 @@
+// Escapa texto antes de colocar em innerHTML (nomes e equipes sao digitados
+// por quem compra).
+function esc(texto) {
+  return String(texto ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 function legendaStatus(status) {
   const legendas = {
     pendente_pagamento: 'aguardando pagamento',
@@ -31,22 +37,22 @@ async function consultarTicket() {
       <div style="margin-top:8px;">
         ${dados.itens.map((item, i) => `
           <div style="padding:7px 0; border-top:1px solid rgba(255,255,255,0.45);">
-            ${i + 1}. ${item.produto} para <strong>${item.destinatario}</strong>
-            <br><small>${item.equipe || ''} · <span class="status-${item.status}">${legendaStatus(item.status)}</span></small>
+            ${i + 1}. ${esc(item.produto)} para <strong>${esc(item.destinatario)}</strong>
+            <br><small>${esc(item.equipe || '')} · <span class="status-${esc(item.status)}">${esc(legendaStatus(item.status))}</span></small>
           </div>
         `).join('')}
       </div>
     `
-    : `<div>${dados.produto} para <strong>${dados.destinatario}</strong></div>`;
+    : `<div>${esc(dados.produto)} para <strong>${esc(dados.destinatario)}</strong></div>`;
 
   resultadoEl.innerHTML = `
     <div class="aviso sucesso">
       <div style="font-size:1.1rem; margin-bottom:6px;">
-        <strong>${dados.ticket}</strong>
+        <strong>${esc(dados.ticket)}</strong>
       </div>
       ${itens}
       <div style="margin-top:8px;">
-        Status: <span class="status-${dados.status}">${legendaStatus(dados.status)}</span>
+        Status: <span class="status-${esc(dados.status)}">${esc(legendaStatus(dados.status))}</span>
       </div>
     </div>
   `;
