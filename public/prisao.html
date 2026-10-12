@@ -296,7 +296,7 @@
 
     if (!lista.length) {
       $('grade').innerHTML = `<div class="vazio">${termo ? 'Ninguém encontrado com essa busca.'
-        : abaAtual === 'procurados' ? 'Nenhum procurado no momento. A cidade está em paz. 😇' : 'A cela está vazia.'}</div>`;
+        : abaAtual === 'procurados' ? 'Nenhum procurado no momento. O encontro está em paz. 😇' : 'A cela está vazia.'}</div>`;
       return;
     }
     $('grade').innerHTML = lista.map(cartaz).join('');
