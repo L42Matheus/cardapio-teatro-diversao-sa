@@ -48,8 +48,7 @@ const CATEGORIAS = [
   { id: 'rosa',      nome: 'Rosas',      emoji: '🤍' },
   { id: 'boton',     nome: 'Botons',     emoji: '📛' },
   { id: 'trote',     nome: 'Trotes',     emoji: '💌' },
-  { id: 'prisao',    nome: 'Prisão',     emoji: '⛓️' },
-  { id: 'teste',     nome: 'Teste',      emoji: '🚨' }
+  { id: 'prisao',    nome: 'Prisão',     emoji: '⛓️' }
 ];
 
 // Equipes do EAC: quem recebe o pedido escolhe uma delas numa lista (evita
@@ -109,11 +108,7 @@ const PRODUTOS_SEED = [
   { id: 21, categoria: 'prisao',    nome: 'Prisão do Padre',         preco: 5.00, foto: '/uploads/produtos/prisao-padre.webp',
     descricao: 'Mande prender o "Padre" na prisão do EAC.' },
   { id: 22, categoria: 'prisao',    nome: 'Prisão de Coordenador de Equipe', preco: 5.00, foto: '/uploads/produtos/prisao-coordenador.webp',
-    descricao: 'Mande prender o "Coordenador" na prisão do EAC.' },
-
-  // ----- Teste (uso interno, nao remover sem avisar a equipe) -----
-  { id: 12, categoria: 'teste',     nome: 'Produto TOP',          preco: 1.00, foto: '/uploads/produtos/sirene.svg',
-    descricao: 'Produto de teste.' }
+    descricao: 'Mande prender o "Coordenador" na prisão do EAC.' }
 ];
 
 async function iniciarBancoDados() {
@@ -203,8 +198,9 @@ async function iniciarBancoDados() {
 
   // Produtos que sairam do cardapio: Buque de 3 Rosas (2), Chocolate com
   // Rosa (3), Chocolate Coracao (4), Kit 3 Botons (6) e os trotes de exemplo
-  // (7-11). Pedidos guardam produto_nome, entao o historico continua certo.
-  await pool.query('DELETE FROM produtos WHERE id IN (2, 3, 4, 6, 7, 8, 9, 10, 11)');
+  // (7-11) e o Produto TOP de teste (12). Pedidos guardam produto_nome, entao
+  // o historico continua certo.
+  await pool.query('DELETE FROM produtos WHERE id IN (2, 3, 4, 6, 7, 8, 9, 10, 11, 12)');
 
   // Produtos ja existentes que mudaram no seed: Doce Rosa Branca (1)
   // com foto real, novo nome/descricao e R$ 4,00; botons (5, 13-16) a R$ 3,50,
@@ -298,7 +294,7 @@ function sanitizarUsuario(row) {
 // ---- Produtos ----
 
 async function listarProdutosAtivos() {
-  // Mesma ordem das abas (CATEGORIAS): rosas, botons, trotes e teste.
+  // Mesma ordem das abas (CATEGORIAS): rosas, botons, trotes e prisao.
   const { rows } = await pool.query(
     'SELECT * FROM produtos WHERE ativo = true ORDER BY array_position($1::text[], categoria), id',
     [CATEGORIAS.map(c => c.id)]
