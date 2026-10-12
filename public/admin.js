@@ -157,6 +157,13 @@ async function fazerLogin(ev) {
     return;
   }
 
+  // A conta da Policia so usa a pagina da prisao.
+  if (dados.papel === 'policia') {
+    localStorage.setItem('sessaoPolicia', JSON.stringify(dados));
+    window.location.href = '/prisao';
+    return;
+  }
+
   sessao = dados;
   localStorage.setItem('sessaoAdmin', JSON.stringify(sessao));
   await mostrarPainel();

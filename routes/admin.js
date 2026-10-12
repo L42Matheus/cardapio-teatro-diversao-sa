@@ -71,6 +71,14 @@ router.post('/login', async (req, res) => {
 // A partir daqui, todas as rotas exigem login.
 router.use(autenticar);
 
+// A conta da Policia so usa a pagina /prisao: fora /me, /logout e /prisao/*,
+// nada do painel (pedidos, estoque, relatorio...) fica disponivel para ela.
+router.use((req, res, next) => {
+  if (req.usuarioAtual.papel !== 'policia') return next();
+  if (req.path === '/me' || req.path === '/logout' || req.path.startsWith('/prisao/')) return next();
+  res.status(403).json({ erro: 'A conta da Polícia só acessa a página da prisão.' });
+});
+
 // POST /api/admin/logout
 router.post('/logout', (req, res) => {
   sessoes.delete(req.token);
@@ -178,8 +186,11 @@ router.post('/panico', exigirAdmin, async (req, res) => {
 // ---- Pedidos (admin + equipes) ----
 
 // GET /api/admin/pedidos -> lista todos os pedidos, mais recentes primeiro
+// (as equipes de entrega nao recebem os pedidos de prisao: quem cuida
+// deles e a Policia, na pagina /prisao; o admin continua vendo tudo).
 router.get('/pedidos', async (req, res) => {
-  const pedidos = (await db.listarPedidos()).slice().sort((a, b) => b.id - a.id);
+  let pedidos = (await db.listarPedidos()).slice().sort((a, b) => b.id - a.id);
+  if (req.usuarioAtual.papel !== 'admin') pedidos = pedidos.filter(p => p.categoria !== 'prisao');
   res.json(pedidos);
 });
 
@@ -291,6 +302,58 @@ router.post('/pedidos/arquivar-todos', exigirAdmin, async (req, res) => {
     res.json({ arquivados: total });
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao limpar os pedidos.' });
+  }
+});
+
+// ---- Prisao (pagina /prisao: conta da Policia e admin) ----
+
+function exigirPolicia(req, res, next) {
+  if (req.usuarioAtual.papel !== 'policia' && req.usuarioAtual.papel !== 'admin') {
+    return res.status(403).json({ erro: 'Apenas a Polícia pode fazer isso.' });
+  }
+  next();
+}
+
+// So o que a Policia precisa para achar a pessoa. Quem pediu a prisao
+// aparece como "denunciante", a menos que tenha pedido anonimato.
+function mandadoParaPolicia(p) {
+  return {
+    id: p.id,
+    codigo: p.codigo,
+    crime: p.produtoNome,
+    nome: p.nomeDestinatario,
+    equipe: p.equipeDestinatario,
+    denunciante: p.anonimo ? null : p.nomeComprador,
+    mensagem: p.mensagemEspecial || null,
+    preso: p.status === 'entregue',
+    criadoEm: p.criadoEm,
+    presoEm: p.status === 'entregue' ? p.atualizadoEm : null
+  };
+}
+
+// GET /api/admin/prisao/mandados -> procurados e presos
+router.get('/prisao/mandados', exigirPolicia, async (req, res) => {
+  const mandados = await db.listarMandadosPrisao();
+  res.json(mandados.map(mandadoParaPolicia));
+});
+
+// POST /api/admin/prisao/mandados/:id/capturar -> a pessoa foi presa: conta
+// como entregue (pela "Polícia") no painel e no resumo.
+router.post('/prisao/mandados/:id/capturar', exigirPolicia, async (req, res) => {
+  const pedido = await db.buscarPedido(req.params.id);
+  if (!pedido || pedido.categoria !== 'prisao') {
+    return res.status(404).json({ erro: 'Mandado não encontrado.' });
+  }
+  if (pedido.status === 'entregue') {
+    return res.status(409).json({ erro: 'Essa pessoa já foi presa.' });
+  }
+  try {
+    const atualizado = await db.marcarEntregue(pedido.id, 'Polícia');
+    res.json(mandadoParaPolicia(atualizado));
+  } catch (err) {
+    const mapa = { PEDIDO_NAO_PAGO: [409, 'Esse mandado ainda não foi pago.'] };
+    const [codigo, msg] = mapa[err.message] || [500, 'Erro ao registrar a prisão.'];
+    res.status(codigo).json({ erro: msg });
   }
 });
 

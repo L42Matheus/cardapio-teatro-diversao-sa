@@ -239,6 +239,24 @@ async function iniciarBancoDados() {
       await pool.query(`UPDATE usuarios SET usuario = 'teatro', senha_hash = $1 WHERE id = $2`, [hashDesejado, admin.id]);
     }
   }
+
+  // Conta unica da Policia (usuario "policia", papel 'policia'), usada pelos
+  // responsaveis da prisao na pagina /prisao. So existe se POLICIA_PASSWORD
+  // estiver definida (sem senha default); a senha e sincronizada a cada boot.
+  if (process.env.POLICIA_PASSWORD) {
+    const hashPolicia = hashSenha(process.env.POLICIA_PASSWORD);
+    await pool.query(
+      `INSERT INTO usuarios (usuario, senha_hash, papel, nome)
+       SELECT 'policia', $1, 'policia', 'Polícia'
+       WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE LOWER(usuario) = 'policia')`,
+      [hashPolicia]
+    );
+    await pool.query(
+      `UPDATE usuarios SET senha_hash = $1, papel = 'policia', nome = 'Polícia'
+       WHERE LOWER(usuario) = 'policia' AND (senha_hash <> $1 OR papel <> 'policia')`,
+      [hashPolicia]
+    );
+  }
 }
 
 // ---- Mapeamento linha do banco -> objeto usado pelo resto do app ----
@@ -513,6 +531,15 @@ async function arquivarTodosPedidos() {
   return rowCount;
 }
 
+// Mandados de prisao: pedidos da categoria 'prisao' ja pagos (procurados) ou
+// ja capturados (status 'entregue'). Pendentes de pagamento nao aparecem.
+async function listarMandadosPrisao() {
+  const { rows } = await pool.query(
+    `SELECT * FROM pedidos WHERE categoria = 'prisao' AND status IN ('pago', 'aguardando', 'entregue') ORDER BY id`
+  );
+  return rows.map(linhaParaPedido);
+}
+
 async function listarPedidos() {
   const { rows } = await pool.query('SELECT * FROM pedidos ORDER BY id');
   return rows.map(linhaParaPedido);
@@ -706,6 +733,7 @@ async function removerUsuario(id) {
 }
 
 module.exports = {
+  listarMandadosPrisao,
   arquivarTodosPedidos,
   iniciarBancoDados,
   listarProdutosAtivos,

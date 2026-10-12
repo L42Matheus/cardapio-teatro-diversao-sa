@@ -88,6 +88,7 @@ Railway, configure as variáveis de ambiente do serviço:
 | `EFI_PIX_KEY` | Chave Pix real que vai receber o dinheiro |
 | `WEBHOOK_PIX_TOKEN` | Um token novo, diferente do usado em homologação |
 | `ADMIN_PASSWORD` | Senha forte para o usuário `teatro` (nunca deixar no default) |
+| `POLICIA_PASSWORD` | Senha da conta única da Polícia (usuário `policia`), usada na página `/prisao` |
 | `PORT` | Já é injetada automaticamente pelo Railway |
 
 Depois do primeiro deploy, pegue o domínio público gerado pelo Railway

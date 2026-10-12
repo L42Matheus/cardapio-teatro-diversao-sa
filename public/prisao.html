@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Delegacia EAC — Prisão</title>
+<link rel="icon" type="image/svg+xml" href="/logo-eac.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap" rel="stylesheet">
+<!--
+  Pagina da Policia (conta unica "policia"; o admin tambem entra).
+  Lista os mandados de prisao pagos: a Policia vai atras da pessoa e, quando
+  ela entra na cela, toca "Capturado!" e confirma. Isso marca o pedido como
+  entregue (pela "Polícia") no painel e no resumo.
+-->
+<style>
+  :root {
+    --noite: #0f1b30; --noite-2: #18294a; --noite-3: #22385f;
+    --vermelho: #e53935; --azul: #2f7bff; --ouro: #f5b301;
+    --papel: #f6ecd2; --papel-borda: #d9c79c; --tinta: #2a2116;
+    --verde: #2e7d32; --texto: #eef2fb; --fraco: #9fb0cf;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, Roboto, sans-serif;
+    background: radial-gradient(1200px 500px at 50% -120px, var(--noite-3), var(--noite) 70%);
+    background-color: var(--noite);
+    color: var(--texto); min-height: 100vh;
+  }
+  .oculto { display: none !important; }
+
+  /* ---------- Sirene ---------- */
+  .sirene { display: flex; height: 7px; }
+  .sirene span { flex: 1; }
+  .sirene .r { background: var(--vermelho); animation: pisca-r 1s infinite; }
+  .sirene .a { background: var(--azul); animation: pisca-a 1s infinite; }
+  @keyframes pisca-r { 0%, 49% { opacity: 1; box-shadow: 0 0 18px 4px rgba(229,57,53,.75); } 50%, 100% { opacity: .25; box-shadow: none; } }
+  @keyframes pisca-a { 0%, 49% { opacity: .25; box-shadow: none; } 50%, 100% { opacity: 1; box-shadow: 0 0 18px 4px rgba(47,123,255,.75); } }
+  @media (prefers-reduced-motion: reduce) { .sirene span { animation: none; opacity: 1; } }
+
+  header { padding: 18px 16px 6px; text-align: center; position: relative; }
+  .distintivo {
+    width: 64px; height: 64px; margin: 0 auto 6px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffe08a, var(--ouro) 55%, #b88400);
+    display: flex; align-items: center; justify-content: center; font-size: 30px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.35), inset 0 -3px 0 rgba(0,0,0,.18);
+  }
+  header h1 { font-family: "Black Ops One", Impact, sans-serif; font-weight: 400; letter-spacing: 2px; font-size: 1.9rem; margin: 0; }
+  header p { margin: 2px 0 0; color: var(--fraco); font-size: .9rem; }
+  .sair { position: absolute; right: 14px; top: 14px; color: var(--fraco); font-size: .82rem; text-decoration: none; border: 1px solid #2c4470; padding: 5px 10px; border-radius: 99px; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 10px 16px 40px; }
+
+  /* ---------- Login ---------- */
+  .login {
+    max-width: 360px; margin: 26px auto; background: var(--noite-2); border: 1px solid #2c4470;
+    border-radius: 16px; padding: 22px; text-align: center;
+  }
+  .login h2 { margin: 0 0 4px; font-size: 1.15rem; }
+  .login p { margin: 0 0 16px; color: var(--fraco); font-size: .9rem; }
+  .login input {
+    width: 100%; padding: 13px 14px; border-radius: 10px; border: 1px solid #36507f; background: #0c1628;
+    color: var(--texto); font-size: 1rem; margin-bottom: 12px;
+  }
+  .erro { color: #ff8a80; font-size: .88rem; margin: 0 0 10px; }
+
+  button {
+    font: inherit; border: none; cursor: pointer; border-radius: 12px; font-weight: 800;
+    padding: 13px 16px; font-size: 1rem;
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-entrar { width: 100%; background: var(--ouro); color: #2a1f00; }
+
+  /* ---------- Placar e abas ---------- */
+  .placar { display: flex; gap: 10px; justify-content: center; margin: 10px auto 14px; max-width: 420px; }
+  .aba {
+    flex: 1; background: var(--noite-2); color: var(--texto); border: 2px solid #2c4470;
+    display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 10px; white-space: nowrap;
+  }
+  .aba b { background: #0c1628; border-radius: 99px; padding: 1px 10px; font-size: .95rem; }
+  .aba.ativa { border-color: var(--ouro); background: var(--noite-3); }
+  .aba.ativa.procurados b { background: var(--vermelho); }
+  .aba.ativa.cela b { background: var(--verde); }
+  .busca {
+    display: block; width: 100%; max-width: 420px; margin: 0 auto 18px; padding: 12px 14px;
+    border-radius: 12px; border: 1px solid #36507f; background: #0c1628; color: var(--texto); font-size: .98rem;
+  }
+
+  /* ---------- Cartazes ---------- */
+  .grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+  .cartaz {
+    background: var(--papel); color: var(--tinta); border-radius: 6px; padding: 14px 14px 16px;
+    border: 2px solid var(--papel-borda); position: relative; text-align: center;
+    box-shadow: 0 10px 24px rgba(0,0,0,.35);
+    background-image: radial-gradient(rgba(120,90,40,.08) 1px, transparent 1px); background-size: 6px 6px;
+  }
+  .cartaz .tarja {
+    font-family: "Black Ops One", Impact, sans-serif; font-size: 1.9rem; letter-spacing: 3px; color: #b3261e;
+    border-top: 3px solid #b3261e; border-bottom: 3px solid #b3261e; padding: 2px 0; margin-bottom: 10px;
+  }
+  .cartaz .nome { font-size: 1.45rem; font-weight: 900; line-height: 1.1; word-break: break-word; }
+  .cartaz .equipe { margin-top: 4px; font-weight: 700; font-size: .98rem; }
+  .cartaz dl { margin: 12px 0 0; text-align: left; font-size: .9rem; display: grid; grid-template-columns: auto 1fr; gap: 3px 8px; }
+  .cartaz dt { font-weight: 800; color: #6b5532; }
+  .cartaz dd { margin: 0; word-break: break-word; }
+  .perigo {
+    display: inline-block; margin-top: 8px; background: #b3261e; color: #fff; font-size: .74rem; font-weight: 900;
+    letter-spacing: .6px; padding: 3px 9px; border-radius: 99px; text-transform: uppercase;
+  }
+  .mensagem { margin: 10px 0 0; font-style: italic; font-size: .9rem; background: rgba(255,255,255,.5); border-radius: 6px; padding: 7px 9px; text-align: left; }
+  .btn-capturar {
+    width: 100%; margin-top: 14px; background: var(--noite); color: #fff; font-size: 1.05rem;
+    box-shadow: 0 4px 0 #050b16;
+  }
+  .btn-capturar:active { transform: translateY(2px); box-shadow: 0 2px 0 #050b16; }
+
+  .cartaz.preso { filter: saturate(.75); }
+  .cartaz.preso .tarja { color: var(--verde); border-color: var(--verde); }
+  .carimbo {
+    position: absolute; top: 68%; right: 10px; transform: rotate(-14deg);
+    font-family: "Black Ops One", Impact, sans-serif; font-size: 1.9rem; color: rgba(46,125,50,.55);
+    border: 4px solid rgba(46,125,50,.55); border-radius: 8px; padding: 0 12px; pointer-events: none; letter-spacing: 3px;
+  }
+  .vazio { text-align: center; color: var(--fraco); padding: 40px 10px; font-size: 1rem; }
+
+  /* ---------- Confirmacao ---------- */
+  .modal { position: fixed; inset: 0; background: rgba(4,9,18,.72); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+  .modal-caixa { background: var(--noite-2); border: 1px solid #36507f; border-radius: 16px; padding: 22px; max-width: 380px; width: 100%; text-align: center; }
+  .modal-caixa .icone { font-size: 2.4rem; }
+  .modal-caixa h3 { margin: 6px 0 6px; font-size: 1.2rem; }
+  .modal-caixa p { margin: 0 0 18px; color: var(--fraco); }
+  .modal-botoes { display: flex; gap: 10px; }
+  .modal-botoes button { flex: 1; }
+  .btn-sim { background: var(--verde); color: #fff; }
+  .btn-nao { background: #3a4d70; color: #fff; }
+
+  .aviso {
+    position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--ouro); color: #2a1f00;
+    font-weight: 800; padding: 12px 18px; border-radius: 12px; box-shadow: 0 8px 22px rgba(0,0,0,.4); z-index: 20; max-width: calc(100% - 32px);
+  }
+</style>
+</head>
+<body>
+  <div class="sirene" aria-hidden="true"><span class="r"></span><span class="a"></span><span class="r"></span><span class="a"></span></div>
+  <header>
+    <div class="distintivo" aria-hidden="true">⭐</div>
+    <h1>DELEGACIA EAC</h1>
+    <p>Prisão do EAC · mandados de prisão</p>
+    <a href="#" class="sair oculto" id="sair">sair</a>
+  </header>
+
+  <main>
+    <form class="login oculto" id="tela-login">
+      <h2>🚔 Acesso da Polícia</h2>
+      <p>Digite a senha da Polícia para ver os mandados.</p>
+      <p class="erro oculto" id="login-erro"></p>
+      <input type="password" id="senha" placeholder="Senha da Polícia" autocomplete="current-password" required>
+      <button type="submit" class="btn-entrar">Entrar na delegacia</button>
+    </form>
+
+    <section id="tela-mandados" class="oculto">
+      <div class="placar">
+        <button type="button" class="aba procurados ativa" data-aba="procurados">🚨 Procurados <b id="n-procurados">0</b></button>
+        <button type="button" class="aba cela" data-aba="cela">🔒 Na cela <b id="n-cela">0</b></button>
+      </div>
+      <input class="busca" id="busca" type="search" placeholder="Buscar por nome ou equipe">
+      <div class="grade" id="grade"></div>
+    </section>
+  </main>
+
+  <div class="modal oculto" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+    <div class="modal-caixa">
+      <div class="icone">🚔</div>
+      <h3 id="modal-titulo"></h3>
+      <p id="modal-texto"></p>
+      <div class="modal-botoes">
+        <button type="button" class="btn-nao" id="modal-nao">Ainda não</button>
+        <button type="button" class="btn-sim" id="modal-sim">Sim, está na cela</button>
+      </div>
+    </div>
+  </div>
+  <div class="aviso oculto" id="aviso" role="status"></div>
+
+<script>
+  const CHAVE = 'sessaoPolicia';
+  let sessao = null;
+  let mandados = [];
+  let abaAtual = 'procurados';
+  let timer = null;
+  let idsConhecidos = null;
+  let mandadoEmConfirmacao = null;
+
+  const $ = id => document.getElementById(id);
+  const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const hora = iso => iso ? new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+
+  function lerSessao(chave) {
+    try { return JSON.parse(localStorage.getItem(chave)); } catch { return null; }
+  }
+
+  async function api(caminho, opcoes = {}) {
+    const res = await fetch('/api/admin' + caminho, {
+      ...opcoes,
+      headers: { ...(opcoes.headers || {}), Authorization: `Bearer ${sessao && sessao.token}` }
+    });
+    if (res.status === 401) { sair(); throw new Error('sessao'); }
+    return res;
+  }
+
+  function avisar(texto) {
+    const el = $('aviso');
+    el.textContent = texto;
+    el.classList.remove('oculto');
+    clearTimeout(avisar.t);
+    avisar.t = setTimeout(() => el.classList.add('oculto'), 4000);
+  }
+
+  // ---------- Login ----------
+  function mostrarLogin() {
+    $('tela-login').classList.remove('oculto');
+    $('tela-mandados').classList.add('oculto');
+    $('sair').classList.add('oculto');
+    $('senha').focus();
+  }
+
+  $('tela-login').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const erro = $('login-erro');
+    erro.classList.add('oculto');
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario: 'policia', senha: $('senha').value })
+    });
+    const dados = await res.json();
+    if (!res.ok) {
+      erro.textContent = 'Senha incorreta.';
+      erro.classList.remove('oculto');
+      return;
+    }
+    sessao = dados;
+    localStorage.setItem(CHAVE, JSON.stringify(dados));
+    $('senha').value = '';
+    abrirDelegacia();
+  });
+
+  function sair() {
+    if (sessao && sessao.papel === 'policia') {
+      fetch('/api/admin/logout', { method: 'POST', headers: { Authorization: `Bearer ${sessao.token}` } }).catch(() => {});
+      localStorage.removeItem(CHAVE);
+    }
+    sessao = null;
+    clearInterval(timer);
+    mostrarLogin();
+  }
+  $('sair').addEventListener('click', ev => { ev.preventDefault(); sair(); });
+
+  // ---------- Mandados ----------
+  function abrirDelegacia() {
+    $('tela-login').classList.add('oculto');
+    $('tela-mandados').classList.remove('oculto');
+    $('sair').classList.remove('oculto');
+    carregar();
+    clearInterval(timer);
+    timer = setInterval(carregar, 5000);
+  }
+
+  async function carregar() {
+    let res;
+    try { res = await api('/prisao/mandados'); } catch { return; }
+    if (!res.ok) { avisar('Não foi possível carregar os mandados.'); return; }
+    mandados = await res.json();
+
+    // Avisa quando chega mandado novo enquanto a pagina esta aberta.
+    const procurados = mandados.filter(m => !m.preso);
+    if (idsConhecidos) {
+      const novos = procurados.filter(m => !idsConhecidos.has(m.id));
+      if (novos.length === 1) avisar(`🚨 Novo mandado: ${novos[0].nome} (${novos[0].equipe || 'sem equipe'})`);
+      else if (novos.length > 1) avisar(`🚨 ${novos.length} novos mandados de prisão!`);
+    }
+    idsConhecidos = new Set(mandados.map(m => m.id));
+    render();
+  }
+
+  function render() {
+    const procurados = mandados.filter(m => !m.preso);
+    const presos = mandados.filter(m => m.preso).sort((a, b) => new Date(b.presoEm) - new Date(a.presoEm));
+    $('n-procurados').textContent = procurados.length;
+    $('n-cela').textContent = presos.length;
+
+    const termo = $('busca').value.trim().toLowerCase();
+    const lista = (abaAtual === 'procurados' ? procurados : presos)
+      .filter(m => !termo || `${m.nome} ${m.equipe}`.toLowerCase().includes(termo));
+
+    if (!lista.length) {
+      $('grade').innerHTML = `<div class="vazio">${termo ? 'Ninguém encontrado com essa busca.'
+        : abaAtual === 'procurados' ? 'Nenhum procurado no momento. A cidade está em paz. 😇' : 'A cela está vazia.'}</div>`;
+      return;
+    }
+    $('grade').innerHTML = lista.map(cartaz).join('');
+  }
+
+  function cartaz(m) {
+    const altaPericulosidade = /padre|coordenador/i.test(m.crime || '');
+    return `
+      <article class="cartaz${m.preso ? ' preso' : ''}">
+        <div class="tarja">${m.preso ? 'CAPTURADO' : 'PROCURADO'}</div>
+        <div class="nome">${esc(m.nome)}</div>
+        <div class="equipe">👥 ${m.equipe ? esc(m.equipe) : 'Equipe não informada'}</div>
+        ${altaPericulosidade ? '<span class="perigo">⚠️ Alta periculosidade</span>' : ''}
+        <dl>
+          <dt>Crime</dt><dd>${esc(m.crime)}</dd>
+          <dt>Denúncia</dt><dd>${m.denunciante ? esc(m.denunciante) : 'Anônima 🕵️'}</dd>
+          <dt>Mandado</dt><dd>${hora(m.criadoEm)} · ${esc(m.codigo || '')}</dd>
+          ${m.preso ? `<dt>Preso às</dt><dd>${hora(m.presoEm)}</dd>` : ''}
+        </dl>
+        ${m.mensagem ? `<p class="mensagem">“${esc(m.mensagem)}”</p>` : ''}
+        ${m.preso ? '<div class="carimbo">PRESO</div>'
+          : `<button type="button" class="btn-capturar" onclick="pedirConfirmacao(${Number(m.id)})">🚔 Capturado!</button>`}
+      </article>`;
+  }
+
+  // ---------- Confirmacao de prisao ----------
+  function pedirConfirmacao(id) {
+    const m = mandados.find(x => x.id === id);
+    if (!m) return;
+    mandadoEmConfirmacao = m;
+    $('modal-titulo').textContent = `Prender ${m.nome}?`;
+    $('modal-texto').textContent = `Confirme só quando ${m.nome}${m.equipe ? ' (' + m.equipe + ')' : ''} já estiver dentro da cela.`;
+    $('modal').classList.remove('oculto');
+    $('modal-sim').focus();
+  }
+  function fecharModal() { $('modal').classList.add('oculto'); mandadoEmConfirmacao = null; }
+  $('modal-nao').addEventListener('click', fecharModal);
+  $('modal').addEventListener('click', ev => { if (ev.target === $('modal')) fecharModal(); });
+
+  $('modal-sim').addEventListener('click', async () => {
+    const m = mandadoEmConfirmacao;
+    if (!m) return;
+    $('modal-sim').disabled = true;
+    try {
+      const res = await api(`/prisao/mandados/${m.id}/capturar`, { method: 'POST' });
+      const dados = await res.json();
+      if (!res.ok) { avisar(dados.erro || 'Erro ao registrar a prisão.'); }
+      else { avisar(`🔒 ${m.nome} foi para a cela!`); }
+    } catch { /* sessao expirada: ja voltou para o login */ }
+    $('modal-sim').disabled = false;
+    fecharModal();
+    carregar();
+  });
+
+  // ---------- Abas e busca ----------
+  document.querySelectorAll('.aba').forEach(btn => btn.addEventListener('click', () => {
+    abaAtual = btn.dataset.aba;
+    document.querySelectorAll('.aba').forEach(b => b.classList.toggle('ativa', b === btn));
+    render();
+  }));
+  $('busca').addEventListener('input', render);
+
+  // ---------- Inicio ----------
+  (async () => {
+    // Conta da Policia salva, ou o admin ja logado no painel.
+    for (const chave of [CHAVE, 'sessaoAdmin']) {
+      const salva = lerSessao(chave);
+      if (!salva || !salva.token) continue;
+      const res = await fetch('/api/admin/me', { headers: { Authorization: `Bearer ${salva.token}` } });
+      if (!res.ok) { if (chave === CHAVE) localStorage.removeItem(CHAVE); continue; }
+      const me = await res.json();
+      if (me.papel !== 'policia' && me.papel !== 'admin') continue;
+      sessao = { ...salva, papel: me.papel };
+      abrirDelegacia();
+      return;
+    }
+    mostrarLogin();
+  })();
+</script>
+</body>
+</html>
