@@ -104,7 +104,7 @@ const PRODUTOS_SEED = [
   // ----- Prisao dos Amostradinhos -----
   { id: 20, categoria: 'prisao',    nome: 'Prisão',                  preco: 2.00, foto: '/uploads/produtos/prisao-normal.webp',
     descricao: 'Mande prender alguém na Prisão dos Amostradinhos.' },
-  { id: 21, categoria: 'prisao',    nome: 'Prisão do Padre',         preco: 5.00, foto: '/uploads/produtos/prisao.webp',
+  { id: 21, categoria: 'prisao',    nome: 'Prisão do Padre',         preco: 5.00, foto: '/uploads/produtos/prisao-padre.webp',
     descricao: 'Mande prender um padre na Prisão dos Amostradinhos.' },
   { id: 22, categoria: 'prisao',    nome: 'Prisão de Coordenador de Equipe', preco: 5.00, foto: '/uploads/produtos/prisao-coordenador.webp',
     descricao: 'Mande prender um coordenador de equipe na Prisão dos Amostradinhos.' },
