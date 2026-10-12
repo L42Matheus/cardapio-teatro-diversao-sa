@@ -278,4 +278,20 @@ router.post('/pedidos/:id/simular-pagamento', exigirAdmin, async (req, res) => {
   }
 });
 
+// POST /api/admin/pedidos/arquivar-todos { confirmacao: 'APAGAR' } -> tira
+// todos os pedidos do painel (move para pedidos_arquivados). Somente admin.
+// Uso: limpar os pedidos de teste antes do evento. O estoque nao muda.
+router.post('/pedidos/arquivar-todos', exigirAdmin, async (req, res) => {
+  const { confirmacao } = req.body || {};
+  if (confirmacao !== 'APAGAR') {
+    return res.status(400).json({ erro: 'Digite APAGAR para confirmar.' });
+  }
+  try {
+    const total = await db.arquivarTodosPedidos();
+    res.json({ arquivados: total });
+  } catch (err) {
+    res.status(500).json({ erro: 'Erro ao limpar os pedidos.' });
+  }
+});
+
 module.exports = router;

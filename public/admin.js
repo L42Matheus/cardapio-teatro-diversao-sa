@@ -196,6 +196,7 @@ async function mostrarPainel() {
   // Aba "Estoque" so aparece para admin.
   document.getElementById('aba-estoque').classList.toggle('oculto', !ehAdmin);
   document.getElementById('aba-relatorio').classList.toggle('oculto', !ehAdmin);
+  document.getElementById('limpar-pedidos').classList.toggle('oculto', !ehAdmin);
   configurarAbas();
   configurarCarrosselKanban();
   configurarConfirmacao();
@@ -414,6 +415,31 @@ function renderResumo(pedidos) {
     </div>
   `;
   renderListaResumo(pedidos);
+}
+
+async function limparPedidosTeste() {
+  const total = pedidosCache.length;
+  if (total === 0) { alert('Não há pedidos para limpar.'); return; }
+  const digitado = prompt(
+    `Isso vai tirar os ${total} pedidos do painel e zerar o Resumo.\n` +
+    'Use só para apagar os pedidos de teste, antes do evento.\n\n' +
+    'Para confirmar, digite APAGAR:'
+  );
+  if (digitado === null) return;
+  if (digitado.trim().toUpperCase() !== 'APAGAR') {
+    alert('Nada foi apagado. Para confirmar é preciso digitar APAGAR.');
+    return;
+  }
+  const res = await apiAdmin('/pedidos/arquivar-todos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ confirmacao: 'APAGAR' })
+  });
+  const dados = await res.json();
+  if (!res.ok) { alert(dados.erro || 'Erro ao limpar os pedidos.'); return; }
+  filtroResumoAtual = null;
+  await carregarPedidos();
+  alert(`Pronto! ${dados.arquivados} pedido(s) tirado(s) do painel.`);
 }
 
 function alternarFiltroResumo(chave) {

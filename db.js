@@ -177,6 +177,15 @@ async function iniciarBancoDados() {
     );
     CREATE INDEX IF NOT EXISTS idx_pedidos_codigo_upper ON pedidos (UPPER(codigo));
     CREATE INDEX IF NOT EXISTS idx_pedidos_pix_txid ON pedidos (pix_txid);
+
+    -- Pedidos tirados do painel pelo botao "Limpar pedidos de teste". Guarda
+    -- a linha inteira em JSON (assim nao quebra se a tabela pedidos ganhar
+    -- colunas novas) e permite recuperar um pedido apagado por engano.
+    CREATE TABLE IF NOT EXISTS pedidos_arquivados (
+      id SERIAL PRIMARY KEY,
+      dados JSONB NOT NULL,
+      arquivado_em TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
   `);
 
   await pool.query('INSERT INTO config (id, pedidos_pausados) VALUES (1, false) ON CONFLICT (id) DO NOTHING');
@@ -498,6 +507,16 @@ async function listarPedidosPorCodigo(codigo) {
   return rows.map(linhaParaPedido);
 }
 
+// Tira todos os pedidos do painel (ex.: pedidos de teste antes do evento),
+// movendo-os para pedidos_arquivados num unico comando. O estoque nao muda.
+async function arquivarTodosPedidos() {
+  const { rowCount } = await pool.query(`
+    WITH movidos AS (DELETE FROM pedidos RETURNING *)
+    INSERT INTO pedidos_arquivados (dados) SELECT to_jsonb(movidos) FROM movidos
+  `);
+  return rowCount;
+}
+
 async function listarPedidos() {
   const { rows } = await pool.query('SELECT * FROM pedidos ORDER BY id');
   return rows.map(linhaParaPedido);
@@ -691,6 +710,7 @@ async function removerUsuario(id) {
 }
 
 module.exports = {
+  arquivarTodosPedidos,
   iniciarBancoDados,
   listarProdutosAtivos,
   buscarProduto,

@@ -391,6 +391,12 @@ button:hover:not(:disabled) { background: var(--azul-esc); }
 button:active:not(:disabled) { transform: translateY(1px); }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 
+button.perigo { background: var(--vermelho); }
+button.perigo:hover:not(:disabled) { background: #b71c1c; }
+.limpar-pedidos { margin-top: 18px; border-color: rgba(229,57,53,0.35); }
+.limpar-pedidos h2 { margin-top: 0; }
+.limpar-pedidos p { color: var(--texto-fraco); margin: 6px 0 14px; }
+
 button.secundario {
   background: transparent;
   color: var(--azul);
