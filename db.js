@@ -95,13 +95,13 @@ const PRODUTOS_SEED = [
   { id: 5,  categoria: 'boton',     nome: 'Boton EAC',            preco: 3.50, foto: '/uploads/produtos/boton-eac.webp',
     descricao: 'Boton oficial do EAC Santo Antônio.' },
   { id: 13, categoria: 'boton',     nome: 'Boton Santa Terezinha', preco: 3.50, foto: '/uploads/produtos/boton-santa-terezinha.webp',
-    descricao: 'Santa Terezinha com seu buquê de rosas.' },
+    descricao: 'Santa Terezinha' },
   { id: 14, categoria: 'boton',     nome: 'Boton Santa Clara',    preco: 3.50, foto: '/uploads/produtos/boton-santa-clara.webp',
-    descricao: 'Santa Clara com o ostensório.' },
+    descricao: 'Santa Clara' },
   { id: 15, categoria: 'boton',     nome: 'Boton Santo Antônio',  preco: 3.50, foto: '/uploads/produtos/boton-santo-antonio.webp',
-    descricao: 'Santo Antônio, padroeiro da paróquia, com o Menino Jesus.' },
+    descricao: 'Santo Antônio' },
   { id: 16, categoria: 'boton',     nome: 'Boton São Francisco',  preco: 3.50, foto: '/uploads/produtos/boton-sao-francisco.webp',
-    descricao: 'São Francisco de Assis com os passarinhos.' },
+    descricao: 'São Francisco de Assis' },
 
   // ----- Prisao do EAC -----
   { id: 20, categoria: 'prisao',    nome: 'Prisão',                  preco: 2.00, foto: '/uploads/produtos/prisao-normal.webp',
