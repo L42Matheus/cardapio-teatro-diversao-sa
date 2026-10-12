@@ -324,12 +324,14 @@
     const procurados = mandados.filter(m => !m.preso);
     const presos = mandados.filter(m => m.preso).sort((a, b) => new Date(b.presoEm) - new Date(a.presoEm));
     $('n-procurados').textContent = procurados.length;
-    $('n-cela').textContent = presos.length;
-    $('n-fiancas').textContent = presos.filter(m => m.fiancaPagaEm).length;
+    // Quem pagou a fianca sai da cela (continua no relatorio de Fiancas).
+    const naCela = presos.filter(m => !m.fiancaPagaEm);
+    $('n-cela').textContent = naCela.length;
+    $('n-fiancas').textContent = presos.length - naCela.length;
 
     const termo = $('busca').value.trim().toLowerCase();
     if (abaAtual === 'fiancas') { renderFiancas(presos, termo); return; }
-    const lista = (abaAtual === 'procurados' ? procurados : presos)
+    const lista = (abaAtual === 'procurados' ? procurados : naCela)
       .filter(m => !termo || `${m.nome} ${m.equipe}`.toLowerCase().includes(termo));
 
     if (!lista.length) {
@@ -378,8 +380,8 @@
     $('grade').innerHTML = `
       <div style="grid-column: 1 / -1;">
         <div class="resumo-fiancas">
-          <div class="ok"><small>Pagaram</small><strong>${pagaram.length}</strong></div>
-          <div class="pendente"><small>Não pagaram</small><strong>${presos.length - pagaram.length}</strong></div>
+          <div class="ok"><small>Pagaram e saíram</small><strong>${pagaram.length}</strong></div>
+          <div class="pendente"><small>Ainda na cela</small><strong>${presos.length - pagaram.length}</strong></div>
           <div><small>Arrecadado</small><strong>R$ ${valor}</strong></div>
         </div>
         <div class="lista-fiancas">
@@ -388,8 +390,8 @@
               <div class="quem"><b>${esc(m.nome)}</b>
                 <small>${m.equipe ? esc(m.equipe) : 'Equipe não informada'} · ${esc(m.crime)} · preso às ${hora(m.presoEm)}</small></div>
               ${m.fiancaPagaEm
-                ? `<span class="selo-fianca paga">✅ Pagou às ${hora(m.fiancaPagaEm)}</span>`
-                : '<span class="selo-fianca nao">⏳ Não pagou</span>'}
+                ? `<span class="selo-fianca paga">✅ Pagou e saiu às ${hora(m.fiancaPagaEm)}</span>`
+                : '<span class="selo-fianca nao">🔒 Na cela · não pagou</span>'}
               <div class="acoes">${m.fiancaPagaEm
                 ? `<button type="button" class="btn-desfazer" onclick="confirmarFianca(${Number(m.id)}, false)">Desfazer</button>`
                 : `<button type="button" class="btn-fianca" style="width:auto" onclick="confirmarFianca(${Number(m.id)}, true)">💰 Pagou a fiança</button>`}</div>
@@ -454,13 +456,13 @@
       titulo: `${m.nome} pagou a fiança?`,
       texto: `Confirme só depois de ver o comprovante do Pix de R$ ${VALOR_FIANCA.toFixed(2).replace('.', ',')}.`,
       sim: 'Sim, pagou', nao: 'Ainda não',
-      acao: () => enviar(`/prisao/mandados/${m.id}/fianca`, { paga: true }, `✅ Fiança de ${m.nome} registrada!`, 'Erro ao registrar a fiança.')
+      acao: () => enviar(`/prisao/mandados/${m.id}/fianca`, { paga: true }, `✅ Fiança paga! ${m.nome} saiu da cela.`, 'Erro ao registrar a fiança.')
     } : {
       icone: '↩️',
       titulo: `Desfazer a fiança de ${m.nome}?`,
-      texto: 'Use se marcou a pessoa errada. Ela volta para "Não pagou".',
+      texto: 'Use se marcou a pessoa errada. Ela volta para a cela, como "não pagou".',
       sim: 'Sim, desfazer', nao: 'Cancelar',
-      acao: () => enviar(`/prisao/mandados/${m.id}/fianca`, { paga: false }, `↩️ Fiança de ${m.nome} desfeita.`, 'Erro ao desfazer a fiança.')
+      acao: () => enviar(`/prisao/mandados/${m.id}/fianca`, { paga: false }, `↩️ Fiança desfeita: ${m.nome} voltou para a cela.`, 'Erro ao desfazer a fiança.')
     });
   }
 
