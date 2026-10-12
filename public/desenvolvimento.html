@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Desenvolvimento — Cardápio, Teatro e Diversão SA</title>
+<link rel="icon" type="image/svg+xml" href="/logo-eac.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-page">
+<!--
+  Pagina escondida (sem link no painel) com ferramentas de desenvolvimento.
+  Usa a mesma sessao do painel admin (localStorage 'sessaoAdmin') e so
+  funciona para o admin: a API recusa equipes e quem nao esta logado.
+-->
+
+<header class="eac-header">
+  <div class="eac-topo">
+    <img class="eac-logo" src="/logo-eac.svg" alt="Logo EAC">
+    <div class="eac-titulo">
+      <h1>Desenvolvimento</h1>
+      <p>Ferramentas do admin · use com cuidado</p>
+    </div>
+    <nav><a href="/admin">&larr; Painel</a></nav>
+  </div>
+</header>
+<div class="eac-faixa"></div>
+
+<main class="admin-main">
+  <section id="sem-acesso" class="card oculto">
+    <h2>Acesso restrito</h2>
+    <p>Esta página é só para o admin. Entre no <a href="/admin">painel admin</a> com o usuário do admin e depois volte para <strong>/desenvolvimento</strong>.</p>
+  </section>
+
+  <section id="limpar-pedidos" class="card limpar-pedidos oculto">
+    <h2>🧹 Limpar pedidos de teste</h2>
+    <p>Tira <strong>todos</strong> os pedidos do painel e zera o Resumo, para começar o evento do zero.
+      O estoque não muda. Os pedidos ficam guardados num arquivo do banco, caso precise recuperar algum.</p>
+    <p>Pedidos no painel agora: <strong id="total-pedidos">…</strong></p>
+    <button type="button" class="perigo" id="botao-limpar">Limpar todos os pedidos</button>
+  </section>
+</main>
+
+<script>
+  const sessao = (() => {
+    try { return JSON.parse(localStorage.getItem('sessaoAdmin')); } catch { return null; }
+  })();
+  const cabecalho = () => ({ Authorization: `Bearer ${sessao && sessao.token}` });
+
+  async function contarPedidos() {
+    const res = await fetch('/api/admin/pedidos', { headers: cabecalho() });
+    if (!res.ok) return null;
+    return (await res.json()).length;
+  }
+
+  async function iniciar() {
+    const me = sessao ? await fetch('/api/admin/me', { headers: cabecalho() }) : null;
+    const dados = me && me.ok ? await me.json() : null;
+    if (!dados || dados.papel !== 'admin') {
+      document.getElementById('sem-acesso').classList.remove('oculto');
+      return;
+    }
+    document.getElementById('limpar-pedidos').classList.remove('oculto');
+    document.getElementById('total-pedidos').textContent = await contarPedidos();
+  }
+
+  document.getElementById('botao-limpar').addEventListener('click', async () => {
+    const total = await contarPedidos();
+    if (!total) { alert('Não há pedidos para limpar.'); return; }
+    const digitado = prompt(
+      `Isso vai tirar os ${total} pedidos do painel e zerar o Resumo.\n` +
+      'Use só para apagar os pedidos de teste, antes do evento.\n\n' +
+      'Para confirmar, digite APAGAR:'
+    );
+    if (digitado === null) return;
+    if (digitado.trim().toUpperCase() !== 'APAGAR') {
+      alert('Nada foi apagado. Para confirmar é preciso digitar APAGAR.');
+      return;
+    }
+    const res = await fetch('/api/admin/pedidos/arquivar-todos', {
+      method: 'POST',
+      headers: { ...cabecalho(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmacao: 'APAGAR' })
+    });
+    const resposta = await res.json();
+    if (!res.ok) { alert(resposta.erro || 'Erro ao limpar os pedidos.'); return; }
+    document.getElementById('total-pedidos').textContent = await contarPedidos();
+    alert(`Pronto! ${resposta.arquivados} pedido(s) tirado(s) do painel.`);
+  });
+
+  iniciar();
+</script>
+</body>
+</html>
