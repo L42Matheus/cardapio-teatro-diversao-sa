@@ -84,6 +84,8 @@ const PRODUTOS_SEED = [
     descricao: 'A pessoa escolhida recebe o trote da panela de pressão.' },
   { id: 19, categoria: 'trote',     nome: 'Trote Celular do Vovô',   preco: 4.00, foto: '/uploads/produtos/trote-celular-do-vovo.jpg',
     descricao: 'A pessoa escolhida recebe o trote do celular do vovô.' },
+  { id: 23, categoria: 'trote',     nome: 'Trote Dança do Bambolê',  preco: 4.00, foto: '/uploads/produtos/trote-danca-do-bambole.jpg',
+    descricao: 'A pessoa escolhida recebe o trote da dança do bambolê.' },
 
   // ----- Rosas -----
   { id: 1,  categoria: 'rosa',      nome: 'Doce Rosa Branca',      preco: 4.00, foto: '/uploads/produtos/rosa.webp',
@@ -101,13 +103,13 @@ const PRODUTOS_SEED = [
   { id: 16, categoria: 'boton',     nome: 'Boton São Francisco',  preco: 3.50, foto: '/uploads/produtos/boton-sao-francisco.webp',
     descricao: 'São Francisco de Assis com os passarinhos.' },
 
-  // ----- Prisao dos Amostradinhos -----
+  // ----- Prisao do EAC -----
   { id: 20, categoria: 'prisao',    nome: 'Prisão',                  preco: 2.00, foto: '/uploads/produtos/prisao-normal.webp',
-    descricao: 'Mande prender alguém na Prisão dos Amostradinhos.' },
+    descricao: 'Mande prender alguém na prisão do EAC.' },
   { id: 21, categoria: 'prisao',    nome: 'Prisão do Padre',         preco: 5.00, foto: '/uploads/produtos/prisao-padre.webp',
-    descricao: 'Mande prender um padre na Prisão dos Amostradinhos.' },
+    descricao: 'Mande prender o "Padre" na prisão do EAC.' },
   { id: 22, categoria: 'prisao',    nome: 'Prisão de Coordenador de Equipe', preco: 5.00, foto: '/uploads/produtos/prisao-coordenador.webp',
-    descricao: 'Mande prender um coordenador de equipe na Prisão dos Amostradinhos.' },
+    descricao: 'Mande prender o "Coordenador" na prisão do EAC.' },
 
   // ----- Teste (uso interno, nao remover sem avisar a equipe) -----
   { id: 12, categoria: 'teste',     nome: 'Produto TOP',          preco: 1.00, foto: '/uploads/produtos/sirene.svg',
