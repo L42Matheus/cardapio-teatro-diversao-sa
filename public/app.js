@@ -90,6 +90,18 @@ function nomeCategoria(id) {
   return c ? `${c.emoji} ${c.nome}` : id;
 }
 
+// Estoque no card: verde quando tem bastante, vermelho com urgencia quando
+// esta acabando (ate ESTOQUE_ULTIMAS unidades) e "Esgotado" quando zera.
+const ESTOQUE_ULTIMAS = 10;
+function textoEstoque(estoque) {
+  const n = Number(estoque);
+  if (n <= 0) return '<p class="estoque-info zerado">Esgotado</p>';
+  if (n <= ESTOQUE_ULTIMAS) {
+    return `<p class="estoque-info ultimas">🔥 ${n === 1 ? 'Última unidade!' : `Últimas ${n} unidades!`}</p>`;
+  }
+  return `<p class="estoque-info tem">${n} disponíveis</p>`;
+}
+
 function renderizarProdutos() {
   const container = document.getElementById('lista-produtos');
   container.innerHTML = '';
@@ -115,7 +127,7 @@ function renderizarProdutos() {
       <h3>${p.nome}</h3>
       <p class="descricao">${p.descricao || ''}</p>
       <div class="preco">R$ ${p.preco.toFixed(2).replace('.', ',')}</div>
-      <p class="estoque-info${esgotado ? ' zerado' : ''}">${esgotado ? 'Esgotado' : `${p.estoque} disponíveis`}</p>
+      ${textoEstoque(p.estoque)}
       <button class="destaque" ${(pedidosPausados || esgotado) ? 'disabled' : ''} onclick="abrirFormulario(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">${esgotado ? 'Esgotado' : 'Enviar este'}</button>
     `;
     container.appendChild(div);

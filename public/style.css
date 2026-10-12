@@ -328,6 +328,13 @@ h2 {
   color: var(--vermelho);
   font-weight: 600;
 }
+.produto-card .estoque-info.tem,
+.produto-card .estoque-info.ultimas {
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+.produto-card .estoque-info.tem { color: var(--verde); }
+.produto-card .estoque-info.ultimas { color: var(--vermelho); }
 .produto-card .imagem {
   background: var(--creme-2);
   border-radius: 8px;
