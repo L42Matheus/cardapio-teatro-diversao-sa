@@ -173,6 +173,10 @@ async function iniciarBancoDados() {
     CREATE INDEX IF NOT EXISTS idx_pedidos_codigo_upper ON pedidos (UPPER(codigo));
     CREATE INDEX IF NOT EXISTS idx_pedidos_pix_txid ON pedidos (pix_txid);
 
+    -- Fianca da prisao: a Policia marca na /prisao quando o preso paga (QR
+    -- unico impresso, entao a marcacao manual e o registro). NULL = nao pagou.
+    ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS fianca_paga_em TIMESTAMPTZ;
+
     -- Pedidos tirados do painel pelo botao "Limpar pedidos de teste". Guarda
     -- a linha inteira em JSON (assim nao quebra se a tabela pedidos ganhar
     -- colunas novas) e permite recuperar um pedido apagado por engano.
@@ -301,7 +305,8 @@ function linhaParaPedido(row) {
     claimedBy: row.claimed_by,
     claimedAt: row.claimed_at ? row.claimed_at.toISOString() : null,
     equipeEntregou: row.equipe_entregou,
-    pagamento: row.pagamento || null
+    pagamento: row.pagamento || null,
+    fiancaPagaEm: row.fianca_paga_em ? row.fianca_paga_em.toISOString() : null
   };
 }
 
@@ -540,6 +545,18 @@ async function listarMandadosPrisao() {
   return rows.map(linhaParaPedido);
 }
 
+// Marca (ou desmarca, se a Policia clicou errado) a fianca de um preso.
+// So vale para pedidos de prisao ja capturados (status 'entregue'). Nao mexe
+// em atualizado_em, que a /prisao usa como horario da captura.
+async function marcarFiancaPrisao(pedidoId, paga) {
+  const { rows } = await pool.query(
+    `UPDATE pedidos SET fianca_paga_em = ${paga ? 'now()' : 'NULL'}
+     WHERE id = $1 AND categoria = 'prisao' AND status = 'entregue' RETURNING *`,
+    [Number(pedidoId)]
+  );
+  return rows[0] ? linhaParaPedido(rows[0]) : null;
+}
+
 async function listarPedidos() {
   const { rows } = await pool.query('SELECT * FROM pedidos ORDER BY id');
   return rows.map(linhaParaPedido);
@@ -733,6 +750,7 @@ async function removerUsuario(id) {
 }
 
 module.exports = {
+  marcarFiancaPrisao,
   listarMandadosPrisao,
   arquivarTodosPedidos,
   iniciarBancoDados,

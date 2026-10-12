@@ -74,15 +74,49 @@
   .btn-entrar { width: 100%; background: var(--ouro); color: #2a1f00; }
 
   /* ---------- Placar e abas ---------- */
-  .placar { display: flex; gap: 10px; justify-content: center; margin: 10px auto 14px; max-width: 420px; }
+  .placar { display: flex; gap: 8px; justify-content: center; margin: 10px auto 14px; max-width: 560px; flex-wrap: wrap; }
   .aba {
-    flex: 1; background: var(--noite-2); color: var(--texto); border: 2px solid #2c4470;
-    display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 10px; white-space: nowrap;
+    flex: 1 1 0; min-width: 0; background: var(--noite-2); color: var(--texto); border: 2px solid #2c4470;
+    display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 6px; white-space: nowrap;
+    font-size: .92rem;
+  }
+  @media (max-width: 480px) {
+    .aba { flex-direction: column; gap: 4px; padding: 8px 2px; font-size: .8rem; }
+    .resumo-fiancas small { font-size: .68rem; letter-spacing: 0; }
+    .resumo-fiancas strong { font-size: 1.15rem; }
   }
   .aba b { background: #0c1628; border-radius: 99px; padding: 1px 10px; font-size: .95rem; }
   .aba.ativa { border-color: var(--ouro); background: var(--noite-3); }
   .aba.ativa.procurados b { background: var(--vermelho); }
   .aba.ativa.cela b { background: var(--verde); }
+  .aba.ativa.fiancas b { background: var(--ouro); color: #2a1f00; }
+
+  /* ---------- Fianca ---------- */
+  .fianca { margin-top: 12px; border-top: 2px dashed var(--papel-borda); padding-top: 10px; position: relative; z-index: 1; }
+  .btn-fianca { width: 100%; background: var(--ouro); color: #2a1f00; box-shadow: 0 4px 0 #a87b00; }
+  .btn-fianca:active { transform: translateY(2px); box-shadow: 0 2px 0 #a87b00; }
+  .fianca-paga { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 800; color: var(--verde); }
+  .btn-desfazer { background: transparent; color: #6b5532; border: 1px solid var(--papel-borda); padding: 6px 10px; font-size: .8rem; font-weight: 700; }
+
+  .resumo-fiancas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; max-width: 560px; margin: 0 auto 16px; }
+  .resumo-fiancas div { background: var(--noite-2); border: 1px solid #2c4470; border-radius: 12px; padding: 10px 4px; text-align: center; min-width: 0; }
+  .resumo-fiancas small { display: block; color: var(--fraco); font-size: .78rem; text-transform: uppercase; letter-spacing: .5px; }
+  .resumo-fiancas strong { font-size: 1.35rem; }
+  .resumo-fiancas .ok strong { color: #7bd389; }
+  .resumo-fiancas .pendente strong { color: #ff8a80; }
+  .lista-fiancas { max-width: 760px; margin: 0 auto; display: grid; gap: 8px; }
+  .linha-fianca {
+    display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center;
+    background: var(--noite-2); border: 1px solid #2c4470; border-radius: 12px; padding: 10px 12px;
+  }
+  .linha-fianca .quem b { font-size: 1rem; }
+  .linha-fianca .quem small { display: block; color: var(--fraco); font-size: .82rem; }
+  .selo-fianca { font-size: .8rem; font-weight: 800; border-radius: 99px; padding: 3px 10px; white-space: nowrap; }
+  .selo-fianca.paga { background: rgba(46,125,50,.25); color: #7bd389; }
+  .selo-fianca.nao { background: rgba(229,57,53,.2); color: #ff8a80; }
+  .linha-fianca .acoes { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; }
+  .linha-fianca .acoes button { padding: 8px 12px; font-size: .86rem; }
+  .linha-fianca .btn-desfazer { color: var(--fraco); border-color: #36507f; }
   .busca {
     display: block; width: 100%; max-width: 420px; margin: 0 auto 18px; padding: 12px 14px;
     border-radius: 12px; border: 1px solid #36507f; background: #0c1628; color: var(--texto); font-size: .98rem;
@@ -164,6 +198,7 @@
       <div class="placar">
         <button type="button" class="aba procurados ativa" data-aba="procurados">🚨 Procurados <b id="n-procurados">0</b></button>
         <button type="button" class="aba cela" data-aba="cela">🔒 Na cela <b id="n-cela">0</b></button>
+        <button type="button" class="aba fiancas" data-aba="fiancas">💰 Fianças <b id="n-fiancas">0</b></button>
       </div>
       <input class="busca" id="busca" type="search" placeholder="Buscar por nome ou equipe">
       <div class="grade" id="grade"></div>
@@ -172,7 +207,7 @@
 
   <div class="modal oculto" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
     <div class="modal-caixa">
-      <div class="icone">🚔</div>
+      <div class="icone" id="modal-icone">🚔</div>
       <h3 id="modal-titulo"></h3>
       <p id="modal-texto"></p>
       <div class="modal-botoes">
@@ -190,7 +225,8 @@
   let abaAtual = 'procurados';
   let timer = null;
   let idsConhecidos = null;
-  let mandadoEmConfirmacao = null;
+  let confirmacaoAtual = null; // { acao: async () => {} }
+  const VALOR_FIANCA = 2;
 
   const $ = id => document.getElementById(id);
   const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -289,8 +325,10 @@
     const presos = mandados.filter(m => m.preso).sort((a, b) => new Date(b.presoEm) - new Date(a.presoEm));
     $('n-procurados').textContent = procurados.length;
     $('n-cela').textContent = presos.length;
+    $('n-fiancas').textContent = presos.filter(m => m.fiancaPagaEm).length;
 
     const termo = $('busca').value.trim().toLowerCase();
+    if (abaAtual === 'fiancas') { renderFiancas(presos, termo); return; }
     const lista = (abaAtual === 'procurados' ? procurados : presos)
       .filter(m => !termo || `${m.nome} ${m.equipe}`.toLowerCase().includes(termo));
 
@@ -317,39 +355,114 @@
           ${m.preso ? `<dt>Preso às</dt><dd>${hora(m.presoEm)}</dd>` : ''}
         </dl>
         ${m.mensagem ? `<p class="mensagem">“${esc(m.mensagem)}”</p>` : ''}
-        ${m.preso ? '<div class="carimbo">PRESO</div>'
-          : `<button type="button" class="btn-capturar" onclick="pedirConfirmacao(${Number(m.id)})">🚔 Capturado!</button>`}
+        ${m.preso ? '<div class="carimbo">PRESO</div>' + blocoFianca(m)
+          : `<button type="button" class="btn-capturar" onclick="confirmarCaptura(${Number(m.id)})">🚔 Capturado!</button>`}
       </article>`;
   }
 
-  // ---------- Confirmacao de prisao ----------
-  function pedirConfirmacao(id) {
-    const m = mandados.find(x => x.id === id);
-    if (!m) return;
-    mandadoEmConfirmacao = m;
-    $('modal-titulo').textContent = `Prender ${m.nome}?`;
-    $('modal-texto').textContent = `Confirme só quando ${m.nome}${m.equipe ? ' (' + m.equipe + ')' : ''} já estiver dentro da cela.`;
+  function blocoFianca(m) {
+    return `<div class="fianca">${m.fiancaPagaEm
+      ? `<div class="fianca-paga"><span>✅ Fiança paga às ${hora(m.fiancaPagaEm)}</span>
+           <button type="button" class="btn-desfazer" onclick="confirmarFianca(${Number(m.id)}, false)">Desfazer</button></div>`
+      : `<button type="button" class="btn-fianca" onclick="confirmarFianca(${Number(m.id)}, true)">💰 Pagou a fiança</button>`}</div>`;
+  }
+
+  // ---------- Relatorio de fiancas ----------
+  function renderFiancas(presos, termo) {
+    const pagaram = presos.filter(m => m.fiancaPagaEm);
+    const lista = presos
+      .filter(m => !termo || `${m.nome} ${m.equipe}`.toLowerCase().includes(termo))
+      .sort((a, b) => (!!a.fiancaPagaEm - !!b.fiancaPagaEm) || (new Date(b.presoEm) - new Date(a.presoEm)));
+    const valor = (pagaram.length * VALOR_FIANCA).toFixed(2).replace('.', ',');
+
+    $('grade').innerHTML = `
+      <div style="grid-column: 1 / -1;">
+        <div class="resumo-fiancas">
+          <div class="ok"><small>Pagaram</small><strong>${pagaram.length}</strong></div>
+          <div class="pendente"><small>Não pagaram</small><strong>${presos.length - pagaram.length}</strong></div>
+          <div><small>Arrecadado</small><strong>R$ ${valor}</strong></div>
+        </div>
+        <div class="lista-fiancas">
+          ${lista.length ? lista.map(m => `
+            <div class="linha-fianca">
+              <div class="quem"><b>${esc(m.nome)}</b>
+                <small>${m.equipe ? esc(m.equipe) : 'Equipe não informada'} · ${esc(m.crime)} · preso às ${hora(m.presoEm)}</small></div>
+              ${m.fiancaPagaEm
+                ? `<span class="selo-fianca paga">✅ Pagou às ${hora(m.fiancaPagaEm)}</span>`
+                : '<span class="selo-fianca nao">⏳ Não pagou</span>'}
+              <div class="acoes">${m.fiancaPagaEm
+                ? `<button type="button" class="btn-desfazer" onclick="confirmarFianca(${Number(m.id)}, false)">Desfazer</button>`
+                : `<button type="button" class="btn-fianca" style="width:auto" onclick="confirmarFianca(${Number(m.id)}, true)">💰 Pagou a fiança</button>`}</div>
+            </div>`).join('')
+            : `<div class="vazio">${termo ? 'Ninguém encontrado com essa busca.' : 'Ninguém na cela ainda.'}</div>`}
+        </div>
+      </div>`;
+  }
+
+  // ---------- Confirmacoes (prisao e fianca) ----------
+  function pedirConfirmacao({ icone, titulo, texto, sim, nao, acao }) {
+    confirmacaoAtual = { acao };
+    $('modal-icone').textContent = icone;
+    $('modal-titulo').textContent = titulo;
+    $('modal-texto').textContent = texto;
+    $('modal-sim').textContent = sim;
+    $('modal-nao').textContent = nao;
     $('modal').classList.remove('oculto');
     $('modal-sim').focus();
   }
-  function fecharModal() { $('modal').classList.add('oculto'); mandadoEmConfirmacao = null; }
+  function fecharModal() { $('modal').classList.add('oculto'); confirmacaoAtual = null; }
   $('modal-nao').addEventListener('click', fecharModal);
   $('modal').addEventListener('click', ev => { if (ev.target === $('modal')) fecharModal(); });
 
   $('modal-sim').addEventListener('click', async () => {
-    const m = mandadoEmConfirmacao;
-    if (!m) return;
+    if (!confirmacaoAtual) return;
+    const { acao } = confirmacaoAtual;
     $('modal-sim').disabled = true;
-    try {
-      const res = await api(`/prisao/mandados/${m.id}/capturar`, { method: 'POST' });
-      const dados = await res.json();
-      if (!res.ok) { avisar(dados.erro || 'Erro ao registrar a prisão.'); }
-      else { avisar(`🔒 ${m.nome} foi para a cela!`); }
-    } catch { /* sessao expirada: ja voltou para o login */ }
+    try { await acao(); } catch { /* sessao expirada: ja voltou para o login */ }
     $('modal-sim').disabled = false;
     fecharModal();
     carregar();
   });
+
+  async function enviar(caminho, corpo, sucesso, erroPadrao) {
+    const res = await api(caminho, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(corpo || {})
+    });
+    const dados = await res.json();
+    avisar(res.ok ? sucesso : (dados.erro || erroPadrao));
+  }
+
+  function confirmarCaptura(id) {
+    const m = mandados.find(x => x.id === id);
+    if (!m) return;
+    pedirConfirmacao({
+      icone: '🚔',
+      titulo: `Prender ${m.nome}?`,
+      texto: `Confirme só quando ${m.nome}${m.equipe ? ' (' + m.equipe + ')' : ''} já estiver dentro da cela.`,
+      sim: 'Sim, está na cela', nao: 'Ainda não',
+      acao: () => enviar(`/prisao/mandados/${m.id}/capturar`, null, `🔒 ${m.nome} foi para a cela!`, 'Erro ao registrar a prisão.')
+    });
+  }
+
+  function confirmarFianca(id, paga) {
+    const m = mandados.find(x => x.id === id);
+    if (!m) return;
+    pedirConfirmacao(paga ? {
+      icone: '💰',
+      titulo: `${m.nome} pagou a fiança?`,
+      texto: `Confirme só depois de ver o comprovante do Pix de R$ ${VALOR_FIANCA.toFixed(2).replace('.', ',')}.`,
+      sim: 'Sim, pagou', nao: 'Ainda não',
+      acao: () => enviar(`/prisao/mandados/${m.id}/fianca`, { paga: true }, `✅ Fiança de ${m.nome} registrada!`, 'Erro ao registrar a fiança.')
+    } : {
+      icone: '↩️',
+      titulo: `Desfazer a fiança de ${m.nome}?`,
+      texto: 'Use se marcou a pessoa errada. Ela volta para "Não pagou".',
+      sim: 'Sim, desfazer', nao: 'Cancelar',
+      acao: () => enviar(`/prisao/mandados/${m.id}/fianca`, { paga: false }, `↩️ Fiança de ${m.nome} desfeita.`, 'Erro ao desfazer a fiança.')
+    });
+  }
 
   // ---------- Abas e busca ----------
   document.querySelectorAll('.aba').forEach(btn => btn.addEventListener('click', () => {

@@ -327,7 +327,8 @@ function mandadoParaPolicia(p) {
     mensagem: p.mensagemEspecial || null,
     preso: p.status === 'entregue',
     criadoEm: p.criadoEm,
-    presoEm: p.status === 'entregue' ? p.atualizadoEm : null
+    presoEm: p.status === 'entregue' ? p.atualizadoEm : null,
+    fiancaPagaEm: p.fiancaPagaEm || null
   };
 }
 
@@ -355,6 +356,16 @@ router.post('/prisao/mandados/:id/capturar', exigirPolicia, async (req, res) => 
     const [codigo, msg] = mapa[err.message] || [500, 'Erro ao registrar a prisão.'];
     res.status(codigo).json({ erro: msg });
   }
+});
+
+// POST /api/admin/prisao/mandados/:id/fianca { paga: true|false } -> marca
+// que o preso pagou a fianca (QR unico impresso) ou desfaz um clique errado.
+router.post('/prisao/mandados/:id/fianca', exigirPolicia, async (req, res) => {
+  const paga = req.body && req.body.paga;
+  if (typeof paga !== 'boolean') return res.status(400).json({ erro: 'Informe se a fiança foi paga.' });
+  const atualizado = await db.marcarFiancaPrisao(req.params.id, paga);
+  if (!atualizado) return res.status(404).json({ erro: 'Preso não encontrado (a pessoa precisa estar na cela).' });
+  res.json(mandadoParaPolicia(atualizado));
 });
 
 module.exports = router;
