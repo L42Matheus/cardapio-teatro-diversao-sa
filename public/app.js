@@ -571,7 +571,8 @@ function mostrarPopupPolicia(dados) {
   const popup = document.getElementById('popup-policia');
   popup.classList.remove('pronto', 'oculto');
   // "Carregando" por alguns segundos, depois mostra o codigo e o botao.
-  setTimeout(() => popup.classList.add('pronto'), 3500);
+  clearTimeout(mostrarPopupPolicia.timer);
+  mostrarPopupPolicia.timer = setTimeout(() => popup.classList.add('pronto'), 3500);
   return true;
 }
 
@@ -580,24 +581,60 @@ function juntarNomes(nomes) {
   return nomes.length > 1 ? `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}` : (nomes[0] || '');
 }
 
-// Rosas e botons: tela de agradecimento com a foto do produto comprado.
+// Rosas, botons e trotes: tela de agradecimento com a foto do produto.
+// Rosas e botons usam o tema padrao; cada trote tem o seu tema engracado
+// (por id do produto). Textos sao funcoes que recebem "para Fulano".
+const TEMA_OBRIGADO_PADRAO = {
+  emojis: ['💛', '❤️', '💛', '🤍', '❤️', '💛'],
+  titulo: 'Obrigado pelo carinho! 💛',
+  texto: (produto, para) => `A nossa equipe de entrega já vai levar ${produto.nome}${para ? ' para ' + para : ''}.`
+};
 const CATEGORIAS_OBRIGADO = ['rosa', 'boton'];
+const TEMAS_TROTE = {
+  17: { // Trote da Xuxa
+    classe: 'tema-xuxa',
+    emojis: ['⭐', '🎀', '✨', '💖', '⭐', '🎀'],
+    titulo: '⭐ A Rainha dos Baixinhos aprovou!',
+    texto: (produto, para) => `Prepare a plateia: o trote da Xuxa já está a caminho${para ? ' de ' + para : ''}!`
+  },
+  18: { // Trote Panela de Pressao
+    classe: 'tema-panela',
+    emojis: ['💨', '🔥', '💨', '♨️', '💨', '🔥'],
+    titulo: '💨 Tsssss! A pressão subiu!',
+    texto: (produto, para) => `A panela já está no fogo… ${para || 'o alvo'} que se prepare!`
+  },
+  19: { // Trote Celular do Vovo
+    classe: 'tema-vovo',
+    emojis: ['📞', '🔊', '📱', '👴', '🔊', '📞'],
+    titulo: '📞 Alô? ALÔÔÔ??',
+    texto: (produto, para) => `O vovô está ligando${para ? ' para ' + para : ''}… com o volume no máximo!`
+  },
+  23: { // Trote Danca do Bambole
+    classe: 'tema-bambole',
+    emojis: ['🌀', '💃', '🕺', '🌀', '💃', '🕺'],
+    titulo: '🌀 Gira, gira, gira!',
+    texto: (produto, para) => `${para || 'Alguém'} vai ter que rebolar: o bambolê já está a caminho!`
+  }
+};
 
 function mostrarPopupObrigado(dados) {
   const produto = produtos.find(p => Number(p.id) === Number(produtoSelecionado));
-  if (!produto || !CATEGORIAS_OBRIGADO.includes(produto.categoria)) return false;
+  if (!produto) return false;
+  const tema = TEMAS_TROTE[produto.id] || (CATEGORIAS_OBRIGADO.includes(produto.categoria) ? TEMA_OBRIGADO_PADRAO : null);
+  if (!tema) return false;
   const nomes = (Array.isArray(dados.itens) && dados.itens.length ? dados.itens.map(i => i.destinatario) : [dados.destinatario])
     .filter(Boolean);
   const foto = document.getElementById('popup-obrigado-foto');
   foto.src = produto.foto;
   foto.alt = produto.nome;
-  document.getElementById('popup-obrigado-texto').textContent = nomes.length
-    ? `A nossa equipe de entrega já vai levar ${produto.nome} para ${juntarNomes(nomes)}.`
-    : `A nossa equipe de entrega já vai levar ${produto.nome}.`;
+  document.querySelectorAll('#popup-obrigado-emojis span').forEach((el, i) => { el.textContent = tema.emojis[i % tema.emojis.length]; });
+  document.getElementById('popup-obrigado-titulo').textContent = tema.titulo;
+  document.getElementById('popup-obrigado-texto').textContent = tema.texto(produto, juntarNomes(nomes));
   document.getElementById('popup-obrigado-ticket').textContent = dados.ticket;
   const popup = document.getElementById('popup-obrigado');
-  popup.classList.remove('pronto', 'oculto');
-  setTimeout(() => popup.classList.add('pronto'), 3500);
+  popup.className = `popup-overlay popup-obrigado ${tema.classe || ''}`.trim();
+  clearTimeout(mostrarPopupObrigado.timer);
+  mostrarPopupObrigado.timer = setTimeout(() => popup.classList.add('pronto'), 3500);
   return true;
 }
 
