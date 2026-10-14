@@ -19,7 +19,7 @@ app.use(express.json());
 // Sem isso o navegador podia juntar um style.css antigo com um admin.js novo
 // logo depois de um deploy, e a tela aparecia quebrada.
 const VERSAO = (process.env.RAILWAY_GIT_COMMIT_SHA || String(Date.now())).slice(0, 12);
-const PAGINAS = { '/': 'index.html', '/index.html': 'index.html', '/admin': 'admin.html', '/admin.html': 'admin.html', '/consultar.html': 'consultar.html', '/desenvolvimento': 'desenvolvimento.html', '/prisao': 'prisao.html', '/entregas': 'entregas.html' };
+const PAGINAS = { '/': 'index.html', '/index.html': 'index.html', '/admin': 'admin.html', '/admin.html': 'admin.html', '/consultar.html': 'consultar.html', '/desenvolvimento': 'desenvolvimento.html', '/prisao': 'prisao.html', '/entregas': 'entregas.html', '/trotes': 'entregas.html' };
 const htmlComVersao = {};
 for (const arquivo of new Set(Object.values(PAGINAS))) {
   htmlComVersao[arquivo] = fs.readFileSync(path.join(__dirname, 'public', arquivo), 'utf8')

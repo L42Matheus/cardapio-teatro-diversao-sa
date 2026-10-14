@@ -90,6 +90,7 @@ Railway, configure as variáveis de ambiente do serviço:
 | `ADMIN_PASSWORD` | Senha forte para o usuário `teatro` (nunca deixar no default) |
 | `POLICIA_PASSWORD` | Senha da conta única da Polícia (usuário `policia`), usada na página `/prisao` |
 | `ENTREGA_PASSWORD` | Senha da conta única da Entrega (usuário `entrega`), usada na página `/entregas` (rosas e botons) |
+| `TROTE_PASSWORD` | Senha da conta única dos Trotes (usuário `trote`), usada na página `/trotes` |
 | `PORT` | Já é injetada automaticamente pelo Railway |
 
 Depois do primeiro deploy, pegue o domínio público gerado pelo Railway

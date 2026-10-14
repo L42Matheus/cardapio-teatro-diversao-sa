@@ -164,7 +164,7 @@ async function fazerLogin(ev) {
     return;
   }
 
-  // As contas unicas so usam a sua pagina (Policia -> /prisao, Entrega -> /entregas).
+  // As contas unicas so usam a sua pagina (Policia -> /prisao, Entrega -> /entregas, Trote -> /trotes).
   if (dados.papel === 'policia') {
     localStorage.setItem('sessaoPolicia', JSON.stringify(dados));
     window.location.href = '/prisao';
@@ -173,6 +173,11 @@ async function fazerLogin(ev) {
   if (dados.papel === 'entrega') {
     localStorage.setItem('sessaoEntrega', JSON.stringify(dados));
     window.location.href = '/entregas';
+    return;
+  }
+  if (dados.papel === 'trote') {
+    localStorage.setItem('sessaoTrote', JSON.stringify(dados));
+    window.location.href = '/trotes';
     return;
   }
 

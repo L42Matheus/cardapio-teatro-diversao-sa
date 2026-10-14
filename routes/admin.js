@@ -71,12 +71,13 @@ router.post('/login', async (req, res) => {
 // A partir daqui, todas as rotas exigem login.
 router.use(autenticar);
 
-// As contas unicas so usam a sua pagina: a da Policia so /prisao e a da
-// Entrega so /entregas. Fora /me, /logout e as rotas da pagina, nada do
+// As contas unicas so usam a sua pagina: a da Policia so /prisao, a da
+// Entrega so /entregas e a dos Trotes so /trotes. Fora /me, /logout e as rotas da pagina, nada do
 // painel (pedidos, estoque, relatorio...) fica disponivel para elas.
 const ROTAS_CONTA_UNICA = {
   policia: { prefixo: '/prisao/', erro: 'A conta da Polícia só acessa a página da prisão.' },
-  entrega: { prefixo: '/entregas/', erro: 'A conta da Entrega só acessa a página de entregas.' }
+  entrega: { prefixo: '/entregas/', erro: 'A conta da Entrega só acessa a página de entregas.' },
+  trote: { prefixo: '/trotes/', erro: 'A conta dos Trotes só acessa a página de trotes.' }
 };
 router.use((req, res, next) => {
   const regra = ROTAS_CONTA_UNICA[req.usuarioAtual.papel];
@@ -191,12 +192,15 @@ router.post('/panico', exigirAdmin, async (req, res) => {
 
 // ---- Pedidos (admin + equipes) ----
 
+// Categorias que as equipes de entrega nao recebem no painel: prisao e da
+// Policia (/prisao) e trote e da equipe dos trotes (/trotes).
+const CATEGORIAS_SO_DO_ADMIN = ['prisao', 'trote'];
+
 // GET /api/admin/pedidos -> lista todos os pedidos, mais recentes primeiro
-// (as equipes de entrega nao recebem os pedidos de prisao: quem cuida
-// deles e a Policia, na pagina /prisao; o admin continua vendo tudo).
+// (as equipes de entrega nao recebem prisoes nem trotes; o admin ve tudo).
 router.get('/pedidos', async (req, res) => {
   let pedidos = (await db.listarPedidos()).slice().sort((a, b) => b.id - a.id);
-  if (req.usuarioAtual.papel !== 'admin') pedidos = pedidos.filter(p => p.categoria !== 'prisao');
+  if (req.usuarioAtual.papel !== 'admin') pedidos = pedidos.filter(p => !CATEGORIAS_SO_DO_ADMIN.includes(p.categoria));
   res.json(pedidos);
 });
 
@@ -374,17 +378,11 @@ router.post('/prisao/mandados/:id/fianca', exigirPolicia, async (req, res) => {
   res.json(mandadoParaPolicia(atualizado));
 });
 
-// ---- Entregas (pagina /entregas: conta da Entrega e admin) ----
-// Rosas e botons. A conta e unica, entao quem entrega informa o proprio nome
-// (fica no "Estou levando" e no "entregue por"). Usa as mesmas funcoes do
-// quadro do painel, entao os dois mostram sempre o mesmo estado.
-
-function exigirEntrega(req, res, next) {
-  if (req.usuarioAtual.papel !== 'entrega' && req.usuarioAtual.papel !== 'admin') {
-    return res.status(403).json({ erro: 'Apenas a equipe de entrega pode fazer isso.' });
-  }
-  next();
-}
+// ---- Entregas e trotes (paginas /entregas e /trotes) ----
+// As duas paginas funcionam igual: a conta e unica, entao quem faz informa o
+// proprio nome (fica no "Estou levando"/"Estou indo" e no "feito por"). Usam
+// as mesmas funcoes do quadro do painel, entao mostram sempre o mesmo estado.
+// /entregas: rosas e botons (conta "entrega"); /trotes: trotes (conta "trote").
 
 function nomeEntregador(req) {
   const nome = String((req.body && req.body.entregador) || '').trim().replace(/\s+/g, ' ');
@@ -413,57 +411,59 @@ function pedidoParaEntrega(p) {
   };
 }
 
-async function pedidoDeEntrega(id) {
-  const pedido = await db.buscarPedido(id);
-  return pedido && db.CATEGORIAS_ENTREGA.includes(pedido.categoria) ? pedido : null;
-}
-
 const ERROS_ENTREGA = {
   PEDIDO_NAO_ENCONTRADO: [404, 'Pedido não encontrado.'],
   PEDIDO_NAO_DISPONIVEL: [409, 'Esse pedido não está mais disponível.'],
-  PEDIDO_JA_PEGO:        [409, 'Outra pessoa já está levando esse pedido.'],
+  PEDIDO_JA_PEGO:        [409, 'Outra pessoa já está com esse pedido.'],
   PEDIDO_NAO_SEU:        [409, 'Esse pedido está com outra pessoa.'],
   PEDIDO_DE_OUTRA_EQUIPE:[409, 'Esse pedido está com outra pessoa.'],
-  PEDIDO_JA_ENTREGUE:    [409, 'Esse pedido já foi entregue.'],
+  PEDIDO_JA_ENTREGUE:    [409, 'Esse pedido já foi feito.'],
   PEDIDO_NAO_PAGO:       [409, 'Esse pedido ainda não foi pago.']
 };
 
-function rotaEntrega(acao) {
-  return async (req, res) => {
+function registrarPaginaDeEntrega(prefixo, papel, categorias, erroPermissao) {
+  const exigir = (req, res, next) => {
+    if (req.usuarioAtual.papel !== papel && req.usuarioAtual.papel !== 'admin') {
+      return res.status(403).json({ erro: erroPermissao });
+    }
+    next();
+  };
+
+  const rota = acao => async (req, res) => {
     const entregador = nomeEntregador(req);
     if (!entregador) return res.status(400).json({ erro: 'Informe o seu nome (de 2 a 40 letras).' });
-    const pedido = await pedidoDeEntrega(req.params.id);
-    if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado.' });
-    if (pedido.status === 'entregue') return res.status(409).json({ erro: 'Esse pedido já foi entregue.' });
+    const pedido = await db.buscarPedido(req.params.id);
+    if (!pedido || !categorias.includes(pedido.categoria)) return res.status(404).json({ erro: 'Pedido não encontrado.' });
+    if (pedido.status === 'entregue') return res.status(409).json({ erro: 'Esse pedido já foi feito.' });
     if (pedido.status !== 'pago' && pedido.status !== 'aguardando') {
       return res.status(409).json({ erro: 'Esse pedido ainda não foi pago.' });
     }
     try {
       await acao(pedido, entregador);
-      const atualizado = (await db.listarPedidosEntrega()).find(p => p.id === pedido.id);
+      const atualizado = (await db.listarPedidosEntrega(categorias)).find(p => p.id === pedido.id);
       res.json(atualizado ? pedidoParaEntrega(atualizado) : { ok: true });
     } catch (err) {
       const [codigo, msg] = ERROS_ENTREGA[err.message] || [500, 'Erro ao atualizar o pedido.'];
       res.status(codigo).json({ erro: msg });
     }
   };
+
+  // GET <prefixo>/pedidos -> a fazer, a caminho e feitos
+  router.get(`${prefixo}/pedidos`, exigir, async (req, res) => {
+    res.json((await db.listarPedidosEntrega(categorias)).map(pedidoParaEntrega));
+  });
+  // POST <prefixo>/pedidos/:id/levar { entregador } -> "Estou levando" / "Estou indo"
+  router.post(`${prefixo}/pedidos/:id/levar`, exigir,
+    rota((pedido, entregador) => db.pegarPedido(pedido.id, entregador)));
+  // POST <prefixo>/pedidos/:id/desistir { entregador } -> volta para a lista
+  router.post(`${prefixo}/pedidos/:id/desistir`, exigir,
+    rota((pedido, entregador) => db.liberarPedido(pedido.id, entregador, false)));
+  // POST <prefixo>/pedidos/:id/entregar { entregador } -> entregue / trote feito
+  router.post(`${prefixo}/pedidos/:id/entregar`, exigir,
+    rota((pedido, entregador) => db.marcarEntregue(pedido.id, entregador)));
 }
 
-// GET /api/admin/entregas/pedidos -> rosas e botons a entregar e entregues
-router.get('/entregas/pedidos', exigirEntrega, async (req, res) => {
-  res.json((await db.listarPedidosEntrega()).map(pedidoParaEntrega));
-});
-
-// POST /api/admin/entregas/pedidos/:id/levar { entregador } -> "Estou levando"
-router.post('/entregas/pedidos/:id/levar', exigirEntrega,
-  rotaEntrega((pedido, entregador) => db.pegarPedido(pedido.id, entregador)));
-
-// POST /api/admin/entregas/pedidos/:id/desistir { entregador } -> devolve para "A entregar"
-router.post('/entregas/pedidos/:id/desistir', exigirEntrega,
-  rotaEntrega((pedido, entregador) => db.liberarPedido(pedido.id, entregador, false)));
-
-// POST /api/admin/entregas/pedidos/:id/entregar { entregador } -> entregue
-router.post('/entregas/pedidos/:id/entregar', exigirEntrega,
-  rotaEntrega((pedido, entregador) => db.marcarEntregue(pedido.id, entregador)));
+registrarPaginaDeEntrega('/entregas', 'entrega', db.CATEGORIAS_ENTREGA, 'Apenas a equipe de entrega pode fazer isso.');
+registrarPaginaDeEntrega('/trotes', 'trote', db.CATEGORIAS_TROTE, 'Apenas a equipe dos trotes pode fazer isso.');
 
 module.exports = router;

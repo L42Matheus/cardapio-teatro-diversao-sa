@@ -244,11 +244,12 @@ async function iniciarBancoDados() {
     }
   }
 
-  // Contas unicas (uma senha compartilhada) das paginas /prisao e /entregas.
+  // Contas unicas (uma senha compartilhada) das paginas /prisao, /entregas e /trotes.
   // So existem se a variavel da senha estiver definida (sem senha default);
   // a senha e sincronizada a cada boot.
   await sincronizarContaUnica('policia', 'policia', 'Polícia', process.env.POLICIA_PASSWORD);
   await sincronizarContaUnica('entrega', 'entrega', 'Entrega', process.env.ENTREGA_PASSWORD);
+  await sincronizarContaUnica('trote', 'trote', 'Trote', process.env.TROTE_PASSWORD);
 }
 
 async function sincronizarContaUnica(usuario, papel, nome, senha) {
@@ -549,16 +550,17 @@ async function listarMandadosPrisao() {
   return rows.map(linhaParaPedido);
 }
 
-// Pedidos da pagina /entregas (rosas e botons): pagos (a entregar ou a
-// caminho) e ja entregues, com a foto do produto para o entregador.
+// Pedidos das paginas /entregas (rosas e botons) e /trotes (trotes): pagos
+// (a fazer ou a caminho) e ja feitos, com a foto do produto.
 const CATEGORIAS_ENTREGA = ['rosa', 'boton'];
-async function listarPedidosEntrega() {
+const CATEGORIAS_TROTE = ['trote'];
+async function listarPedidosEntrega(categorias = CATEGORIAS_ENTREGA) {
   const { rows } = await pool.query(
     `SELECT p.*, pr.foto AS produto_foto FROM pedidos p
      LEFT JOIN produtos pr ON pr.id = p.produto_id
      WHERE p.categoria = ANY($1) AND p.status IN ('pago', 'aguardando', 'entregue')
      ORDER BY p.id`,
-    [CATEGORIAS_ENTREGA]
+    [categorias]
   );
   return rows.map(r => ({ ...linhaParaPedido(r), produtoFoto: r.produto_foto || null }));
 }
@@ -769,6 +771,7 @@ async function removerUsuario(id) {
 
 module.exports = {
   CATEGORIAS_ENTREGA,
+  CATEGORIAS_TROTE,
   listarPedidosEntrega,
   reservaEstaAtiva,
   marcarFiancaPrisao,

@@ -7,10 +7,12 @@
 <title>EAC Delivery — Entregas</title>
 <link rel="icon" type="image/svg+xml" href="/logo-eac.svg">
 <!--
-  Pagina dos entregadores (conta unica "entrega"; o admin tambem entra).
-  Mostra rosas e botons pagos: o entregador toca "Estou levando" (reserva o
-  pedido com o nome dele), entrega e toca "Entregue!". Usa as mesmas
-  funcoes do quadro do painel admin, entao os dois ficam sempre iguais.
+  Pagina usada em dois enderecos (os textos mudam pelo endereco, ver PAGINAS):
+  - /entregas: rosas e botons (conta unica "entrega")
+  - /trotes:   trotes (conta unica "trote")
+  O admin entra nas duas. Quem faz toca "Estou levando"/"Estou indo"
+  (reserva o pedido com o nome dele) e depois "Entregue!"/"Trote feito!".
+  Usa as mesmas funcoes do quadro do painel admin, entao ficam sempre iguais.
 -->
 <style>
   :root {
@@ -134,28 +136,28 @@
 <body>
   <header>
     <div class="linha">
-      <div class="icone" aria-hidden="true">📦</div>
+      <div class="icone" aria-hidden="true" id="txt-icone">📦</div>
       <div>
-        <h1>EAC Delivery</h1>
-        <p>Entregas de rosas e botons</p>
+        <h1 id="txt-titulo">EAC Delivery</h1>
+        <p id="txt-subtitulo">Entregas de rosas e botons</p>
       </div>
     </div>
   </header>
   <div class="faixa"></div>
   <div class="quem oculto" id="quem">
-    <span>🚚 Entregador: <strong id="nome-atual"></strong><a href="#" id="trocar-nome">trocar nome</a></span>
+    <span><span id="txt-quem">🚚 Entregador:</span> <strong id="nome-atual"></strong><a href="#" id="trocar-nome">trocar nome</a></span>
     <a href="#" id="sair">sair</a>
   </div>
 
   <main>
     <form class="login oculto" id="tela-login">
-      <h2>🚚 Acesso dos entregadores</h2>
-      <p>Entre com a senha da Entrega e o seu nome.</p>
+      <h2 id="txt-login-titulo">🚚 Acesso dos entregadores</h2>
+      <p id="txt-login-texto">Entre com a senha da Entrega e o seu nome.</p>
       <p class="erro oculto" id="login-erro"></p>
       <label>Seu nome
         <input type="text" id="nome" placeholder="Como os outros vão te ver" maxlength="40" autocomplete="name" required>
       </label>
-      <label id="campo-senha">Senha da Entrega
+      <label id="campo-senha"><span id="txt-senha">Senha da Entrega</span>
         <input type="password" id="senha" placeholder="Senha" autocomplete="current-password">
       </label>
       <button type="submit" class="btn-principal">Entrar</button>
@@ -163,9 +165,9 @@
 
     <section id="tela-entregas" class="oculto">
       <div class="abas">
-        <button type="button" class="aba ativa" data-aba="aEntregar">📦 A entregar <b id="n-aEntregar">0</b></button>
-        <button type="button" class="aba" data-aba="comigo">🚚 Comigo <b id="n-comigo">0</b></button>
-        <button type="button" class="aba" data-aba="entregues">✅ Entregues <b id="n-entregues">0</b></button>
+        <button type="button" class="aba ativa" data-aba="aEntregar"><span id="txt-aba-1">📦 A entregar</span> <b id="n-aEntregar">0</b></button>
+        <button type="button" class="aba" data-aba="comigo"><span id="txt-aba-2">🚚 Comigo</span> <b id="n-comigo">0</b></button>
+        <button type="button" class="aba" data-aba="entregues"><span id="txt-aba-3">✅ Entregues</span> <b id="n-entregues">0</b></button>
       </div>
       <input class="busca" id="busca" type="search" placeholder="Buscar por nome ou equipe">
       <div class="grade" id="grade"></div>
@@ -186,8 +188,55 @@
   <div class="aviso oculto" id="aviso" role="status"></div>
 
 <script>
-  const CHAVE = 'sessaoEntrega';
-  const CHAVE_NOME = 'nomeEntregador';
+  // Textos e conta de cada endereco. A API e a mesma, so muda o prefixo.
+  const PAGINAS = {
+    entregas: {
+      usuario: 'entrega', api: '/entregas', chave: 'sessaoEntrega', chaveNome: 'nomeEntregador',
+      tituloAba: 'EAC Delivery — Entregas', icone: '📦', titulo: 'EAC Delivery', subtitulo: 'Entregas de rosas e botons',
+      quem: '🚚 Entregador:', loginTitulo: '🚚 Acesso dos entregadores', loginTexto: 'Entre com a senha da Entrega e o seu nome.',
+      senha: 'Senha da Entrega', abas: ['📦 A entregar', '🚚 Comigo', '✅ Entregues'],
+      novo: p => `📦 Novo pedido: ${p.produto} para ${p.para}`, novos: n => `📦 ${n} novos pedidos para entregar!`,
+      vazioLivres: 'Nenhum pedido esperando entrega. 🎉',
+      vazioComigo: 'Você não está levando nenhum pedido. Pegue um em "A entregar".',
+      vazioFeitos: 'Nenhuma entrega feita ainda.',
+      feitoPor: 'Entregue por', comVoce: '🚚 Com você', comOutro: '🚚 Com',
+      btnPegar: '🚚 Estou levando', btnFeito: '✅ Entregue!',
+      pegou: p => `🚚 ${p.produto} para ${p.para} está com você!`,
+      confirmarIcone: '📦', confirmarTitulo: p => `Entregou para ${p.para}?`,
+      confirmarTexto: p => `Confirme só depois de entregar ${p.produto}${p.equipe ? ' (' + p.equipe + ')' : ''}.`,
+      confirmarSim: 'Sim, entreguei', feito: p => `✅ Entregue para ${p.para}!`,
+      devolverTexto: p => `${p.produto} para ${p.para} volta para "A entregar" e outra pessoa pode levar.`,
+      devolvido: p => `↩️ Pedido de ${p.para} voltou para "A entregar".`
+    },
+    trotes: {
+      usuario: 'trote', api: '/trotes', chave: 'sessaoTrote', chaveNome: 'nomeTroteiro',
+      tituloAba: 'EAC Trotes — Equipe dos trotes', icone: '🎭', titulo: 'EAC Trotes', subtitulo: 'Trotes para fazer no encontro',
+      quem: '🎭 Na equipe:', loginTitulo: '🎭 Acesso da equipe dos trotes', loginTexto: 'Entre com a senha dos Trotes e o seu nome.',
+      senha: 'Senha dos Trotes', abas: ['🎭 A fazer', '🏃 Comigo', '✅ Feitos'],
+      novo: p => `🎭 Novo trote: ${p.produto} para ${p.para}`, novos: n => `🎭 ${n} novos trotes para fazer!`,
+      vazioLivres: 'Nenhum trote esperando. 🎉',
+      vazioComigo: 'Você não está fazendo nenhum trote. Pegue um em "A fazer".',
+      vazioFeitos: 'Nenhum trote feito ainda.',
+      feitoPor: 'Feito por', comVoce: '🏃 Com você', comOutro: '🏃 Com',
+      btnPegar: '🎭 Estou indo', btnFeito: '✅ Trote feito!',
+      pegou: p => `🏃 ${p.produto} para ${p.para} está com você!`,
+      confirmarIcone: '🎭', confirmarTitulo: p => `Fez o trote em ${p.para}?`,
+      confirmarTexto: p => `Confirme só depois de fazer o ${p.produto}${p.equipe ? ' (' + p.equipe + ')' : ''}.`,
+      confirmarSim: 'Sim, trote feito', feito: p => `✅ Trote feito em ${p.para}!`,
+      devolverTexto: p => `${p.produto} para ${p.para} volta para "A fazer" e outra pessoa pode ir.`,
+      devolvido: p => `↩️ Trote de ${p.para} voltou para "A fazer".`
+    }
+  };
+  const T = location.pathname.replace(/\/+$/, '') === '/trotes' ? PAGINAS.trotes : PAGINAS.entregas;
+  document.title = T.tituloAba;
+  for (const [id, texto] of [['txt-icone', T.icone], ['txt-titulo', T.titulo], ['txt-subtitulo', T.subtitulo],
+    ['txt-quem', T.quem], ['txt-login-titulo', T.loginTitulo], ['txt-login-texto', T.loginTexto], ['txt-senha', T.senha],
+    ['txt-aba-1', T.abas[0]], ['txt-aba-2', T.abas[1]], ['txt-aba-3', T.abas[2]]]) {
+    document.getElementById(id).textContent = texto;
+  }
+
+  const CHAVE = T.chave;
+  const CHAVE_NOME = T.chaveNome;
   let sessao = null;
   let nome = '';
   let pedidos = [];
@@ -246,7 +295,7 @@
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario: 'entrega', senha: $('senha').value })
+        body: JSON.stringify({ usuario: T.usuario, senha: $('senha').value })
       });
       const dados = await res.json();
       if (!res.ok) {
@@ -264,7 +313,7 @@
   });
 
   function sair() {
-    if (sessao && sessao.papel === 'entrega') {
+    if (sessao && sessao.papel === T.usuario) {
       fetch('/api/admin/logout', { method: 'POST', headers: { Authorization: `Bearer ${sessao.token}` } }).catch(() => {});
       try { localStorage.removeItem(CHAVE); } catch {}
     }
@@ -288,14 +337,14 @@
 
   async function carregar() {
     let res;
-    try { res = await api('/entregas/pedidos'); } catch { return; }
+    try { res = await api(`${T.api}/pedidos`); } catch { return; }
     if (!res.ok) { avisar('Não foi possível carregar os pedidos.'); return; }
     pedidos = await res.json();
     const livres = pedidos.filter(p => p.situacao === 'livre');
     if (idsConhecidos) {
       const novos = livres.filter(p => !idsConhecidos.has(p.id));
-      if (novos.length === 1) avisar(`📦 Novo pedido: ${novos[0].produto} para ${novos[0].para}`);
-      else if (novos.length > 1) avisar(`📦 ${novos.length} novos pedidos para entregar!`);
+      if (novos.length === 1) avisar(T.novo(novos[0]));
+      else if (novos.length > 1) avisar(T.novos(novos.length));
     }
     idsConhecidos = new Set(pedidos.map(p => p.id));
     render();
@@ -318,9 +367,9 @@
 
     if (!lista.length) {
       const vazio = termo ? 'Ninguém encontrado com essa busca.'
-        : abaAtual === 'aEntregar' ? 'Nenhum pedido esperando entrega. 🎉'
-        : abaAtual === 'comigo' ? 'Você não está levando nenhum pedido. Pegue um em "A entregar".'
-        : 'Nenhuma entrega feita ainda.';
+        : abaAtual === 'aEntregar' ? T.vazioLivres
+        : abaAtual === 'comigo' ? T.vazioComigo
+        : T.vazioFeitos;
       $('grade').innerHTML = `<div class="vazio">${vazio}</div>`;
       return;
     }
@@ -331,18 +380,18 @@
     let situacao = '';
     let acoes = '';
     if (p.situacao === 'entregue') {
-      situacao = `<span class="selo feito">✅ Entregue por ${esc(p.entreguePor || '—')} às ${hora(p.entregueEm)}</span>`;
+      situacao = `<span class="selo feito">✅ ${T.feitoPor} ${esc(p.entreguePor || '—')} às ${hora(p.entregueEm)}</span>`;
     } else if (ehMeu(p)) {
-      situacao = '<span class="selo caminho">🚚 Com você</span>';
-      acoes = `<button type="button" class="btn-entregue" onclick="confirmarEntregue(${Number(p.id)})">✅ Entregue!</button>
+      situacao = `<span class="selo caminho">${T.comVoce}</span>`;
+      acoes = `<button type="button" class="btn-entregue" onclick="confirmarEntregue(${Number(p.id)})">${T.btnFeito}</button>
                <button type="button" class="btn-desistir" onclick="confirmarDesistir(${Number(p.id)})">Desistir</button>`;
     } else if (p.situacao === 'a_caminho' && p.reservaAtiva) {
-      situacao = `<span class="selo caminho">🚚 Com ${esc(p.comQuem)}</span>`;
+      situacao = `<span class="selo caminho">${T.comOutro} ${esc(p.comQuem)}</span>`;
     } else {
       if (p.situacao === 'a_caminho') {
         situacao = `<span class="selo parado">⏳ Estava com ${esc(p.comQuem)} — pode pegar</span>`;
       }
-      acoes = `<button type="button" class="btn-levar" onclick="levar(${Number(p.id)})">🚚 Estou levando</button>`;
+      acoes = `<button type="button" class="btn-levar" onclick="levar(${Number(p.id)})">${T.btnPegar}</button>`;
     }
     return `
       <article class="pedido${ehMeu(p) ? ' minha' : ''}${p.situacao === 'entregue' ? ' feita' : ''}">
@@ -379,7 +428,7 @@
     const p = pedidos.find(x => x.id === id);
     if (!p) return;
     try {
-      const ok = await enviar(`/entregas/pedidos/${id}/levar`, `🚚 ${p.produto} para ${p.para} está com você!`, 'Erro ao pegar o pedido.');
+      const ok = await enviar(`${T.api}/pedidos/${id}/levar`, T.pegou(p), 'Erro ao pegar o pedido.');
       if (ok) trocarAba('comigo');
     } catch {}
     carregar();
@@ -413,11 +462,11 @@
     const p = pedidos.find(x => x.id === id);
     if (!p) return;
     pedirConfirmacao({
-      icone: '📦',
-      titulo: `Entregou para ${p.para}?`,
-      texto: `Confirme só depois de entregar ${p.produto}${p.equipe ? ' (' + p.equipe + ')' : ''}.`,
-      sim: 'Sim, entreguei', nao: 'Ainda não',
-      acao: () => enviar(`/entregas/pedidos/${id}/entregar`, `✅ Entregue para ${p.para}!`, 'Erro ao marcar como entregue.')
+      icone: T.confirmarIcone,
+      titulo: T.confirmarTitulo(p),
+      texto: T.confirmarTexto(p),
+      sim: T.confirmarSim, nao: 'Ainda não',
+      acao: () => enviar(`${T.api}/pedidos/${id}/entregar`, T.feito(p), 'Erro ao marcar como feito.')
     });
   }
 
@@ -427,9 +476,9 @@
     pedirConfirmacao({
       icone: '↩️',
       titulo: 'Devolver este pedido?',
-      texto: `${p.produto} para ${p.para} volta para "A entregar" e outra pessoa pode levar.`,
+      texto: T.devolverTexto(p),
       sim: 'Sim, devolver', nao: 'Cancelar',
-      acao: () => enviar(`/entregas/pedidos/${id}/desistir`, `↩️ Pedido de ${p.para} voltou para "A entregar".`, 'Erro ao devolver o pedido.')
+      acao: () => enviar(`${T.api}/pedidos/${id}/desistir`, T.devolvido(p), 'Erro ao devolver o pedido.')
     });
   }
 
@@ -445,14 +494,14 @@
   // ---------- Inicio ----------
   (async () => {
     nome = lerTexto(CHAVE_NOME);
-    // Conta da Entrega salva, ou o admin ja logado no painel.
+    // Conta da pagina salva, ou o admin ja logado no painel.
     for (const chave of [CHAVE, 'sessaoAdmin']) {
       const salva = ler(chave);
       if (!salva || !salva.token) continue;
       const res = await fetch('/api/admin/me', { headers: { Authorization: `Bearer ${salva.token}` } });
       if (!res.ok) { if (chave === CHAVE) { try { localStorage.removeItem(CHAVE); } catch {} } continue; }
       const me = await res.json();
-      if (me.papel !== 'entrega' && me.papel !== 'admin') continue;
+      if (me.papel !== T.usuario && me.papel !== 'admin') continue;
       sessao = { ...salva, papel: me.papel };
       if (nome) abrirEntregas(); else mostrarLogin(true);
       return;
