@@ -88,7 +88,7 @@ const PRODUTOS_SEED = [
 
   // ----- Rosas -----
   { id: 1,  categoria: 'rosa',      nome: 'Doce Rosa Branca',      preco: 4.00, foto: '/uploads/produtos/rosa.webp',
-    descricao: 'Uma rosa branca com o cartãozinho "És meu amigo", entregue com carinho para quem você escolher. Ela já vem com um chocolate.' },
+    descricao: 'Uma rosa branca com o cartãozinho "És meu amigo", entregue com carinho para quem você escolher. Ela já vem com uma trufa de delícia de abacaxi.' },
 
   // ----- Botons -----
   { id: 5,  categoria: 'boton',     nome: 'Boton EAC',            preco: 3.50, foto: '/uploads/produtos/boton-eac.webp',
