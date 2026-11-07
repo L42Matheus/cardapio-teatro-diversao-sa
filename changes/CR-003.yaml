@@ -1,0 +1,32 @@
+id: CR-003
+evidence:
+- EVD-02
+- EVD-07
+- EVD-08
+drafted_by: llm:claude-opus-5-5 (rascunho a partir de inspeção especialista; requer revisão humana)
+affected_specs:
+- 001-pedido-comprador
+change_type: lacuna_da_especificacao
+observed: 'EVD-02: a caixa de envio anônimo é exposta como "on". EVD-07: a categoria ativa só é indicada por cor e os nomes das abas incluem emojis. EVD-08: etiquetas de produtos esgotados com contraste 3,41:1.'
+inferred: Controles e estados visuais do formulário e do cardápio não têm equivalente para tecnologias assistivas.
+justification: Problemas de nome, estado e contraste; EVD-08 é o único detectado pelo axe-core. EVD-02 afeta a decisão de enviar anonimamente, que tem consequência social no evento.
+wcag:
+- 4.1.2
+- 1.3.1
+- 1.4.3
+spec_changes:
+- spec: 001-pedido-comprador
+  summary: Nomes, estados e contraste dos controles
+  add_criteria:
+  - id: 001/FR-015
+    text: Todo controle do formulário e do cardápio MUST ter um nome acessível que descreva sua função (por exemplo, a opção de envio anônimo MUST ser lida como "Enviar anônimo" ou "Denúncia anônima").
+  - id: 001/FR-016
+    text: A categoria ativa do cardápio MUST ser informada a tecnologias assistivas, e emojis decorativos MUST NOT fazer parte do nome lido das categorias.
+  - id: 001/FR-017
+    text: Os textos do cardápio, inclusive em produtos esgotados, MUST ter contraste mínimo de 4,5:1 com o fundo.
+preserve:
+- 001/FR-001
+- 001/FR-005
+- 001/FR-011
+decision:
+  status: pending

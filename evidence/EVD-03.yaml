@@ -1,0 +1,17 @@
+id: EVD-03
+source: inspeção especialista
+method: inspeção com árvore de acessibilidade do Chromium e axe-core 4.10 (WCAG 2.2 AA) no site em produção
+participant: —
+inspector: Claude (sem participantes; requer confirmação com usuários)
+date: '2026-11-07'
+verified_in: produção (https://cardapio-teatro-e-diversao-sa.up.railway.app), sem criar pedidos
+feature: 001-pedido-comprador
+assistive_technology: simulação (árvore de acessibilidade do Chromium)
+task: T3 - navegar pelo cardápio com teclado
+observed: Com o foco num botão de produto, após 6 s o botão deixou de existir e o foco voltou ao início da página (BODY). O cardápio é recriado a cada 5 s (setInterval(carregarProdutos, 5000) com innerHTML = '').
+impact: quem navega por teclado ou leitor de tela perde a posição a cada 5 segundos e não consegue escolher um produto
+severity: alta
+wcag:
+- 2.4.3
+- 3.2.1
+automatic_check: 'axe-core: 0 violações'

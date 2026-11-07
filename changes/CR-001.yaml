@@ -1,0 +1,31 @@
+id: CR-001
+evidence:
+- EVD-01
+- EVD-04
+drafted_by: llm:claude-opus-5-5 (rascunho a partir de inspeção especialista; requer revisão humana)
+affected_specs:
+- 001-pedido-comprador
+change_type: lacuna_da_especificacao
+observed: 'EVD-01: a mensagem de erro do formulário aparece sem região viva, sem marcação de campo inválido e com o foco parado no botão. EVD-04 (código): a confirmação do pagamento muda texto e abre uma janela sem papel de diálogo e sem mover o foco.'
+inferred: Usuários de leitor de tela não percebem nem o erro nem a confirmação do pagamento. FR-006 e FR-010 exigem que as mensagens sejam exibidas, mas não que sejam percebidas por tecnologias assistivas.
+justification: 'Lacuna da especificação: FR-006 e FR-010 estão atendidos visualmente. SC-004 (corrigir dado inválido sem ajuda) e SC-002 (confirmação percebida) dependem de a mensagem ser percebida. Requer confirmação com usuários (fonte atual: inspeção).'
+wcag:
+- 3.3.1
+- 4.1.3
+- 2.4.3
+- 4.1.2
+spec_changes:
+- spec: 001-pedido-comprador
+  summary: Erros e confirmação do pagamento percebidos por tecnologias assistivas
+  add_criteria:
+  - id: 001/FR-012
+    text: Quando um dado do formulário for inválido, o sistema MUST levar o foco ao primeiro campo a corrigir, identificá-lo como inválido para tecnologias assistivas e fazer com que a mensagem de erro seja anunciada por leitores de tela sem ação adicional do participante.
+  - id: 001/FR-013
+    text: A confirmação do pagamento MUST ser anunciada por leitores de tela; quando exibida em janela sobre a página, a janela MUST ser identificada como diálogo, receber o foco e devolvê-lo à página ao ser fechada.
+preserve:
+- 001/FR-006
+- 001/FR-008
+- 001/FR-009
+- 001/FR-010
+decision:
+  status: pending

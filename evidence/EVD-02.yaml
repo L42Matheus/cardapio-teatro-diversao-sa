@@ -1,0 +1,17 @@
+id: EVD-02
+source: inspeção especialista
+method: inspeção com árvore de acessibilidade do Chromium e axe-core 4.10 (WCAG 2.2 AA) no site em produção
+participant: —
+inspector: Claude (sem participantes; requer confirmação com usuários)
+date: '2026-11-07'
+verified_in: produção (https://cardapio-teatro-e-diversao-sa.up.railway.app), sem criar pedidos
+feature: 001-pedido-comprador
+assistive_technology: simulação (árvore de acessibilidade do Chromium)
+task: T2 - marcar envio anônimo
+observed: 'A caixa de seleção #anonimo é exposta com o nome acessível "on": o emoji 🕵️ está com aria-hidden e o texto "Enviar anônimo" foi colocado como aria-label do elemento label, e não do campo.'
+impact: usuário de leitor de tela ouve "caixa de seleção, on" e não sabe para que serve
+severity: média
+wcag:
+- 1.3.1
+- 4.1.2
+automatic_check: 'axe-core: 0 violações'

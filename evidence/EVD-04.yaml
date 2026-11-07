@@ -1,0 +1,18 @@
+id: EVD-04
+source: inspeção especialista
+method: inspeção com árvore de acessibilidade do Chromium e axe-core 4.10 (WCAG 2.2 AA) no site em produção
+participant: —
+inspector: Claude (sem participantes; requer confirmação com usuários)
+date: '2026-11-07'
+verified_in: leitura do código (public/app.js, commit d4e635b)
+feature: 001-pedido-comprador
+assistive_technology: simulação (árvore de acessibilidade do Chromium)
+task: T4 - pagar e aguardar a confirmação
+observed: 'Pela leitura do código (não verificado em produção, para não criar pedido): a confirmação do pagamento troca o texto de #pix-status, que não é região viva, e abre uma janela (#popup-pagamento, #popup-obrigado ou #popup-policia) sem role="dialog", sem aria-modal e sem mover o foco.'
+impact: usuário de leitor de tela não fica sabendo que o pagamento foi confirmado; pode pagar de novo ou desistir
+severity: alta
+wcag:
+- 4.1.3
+- 2.4.3
+- 4.1.2
+automatic_check: 'axe-core: não verificado'

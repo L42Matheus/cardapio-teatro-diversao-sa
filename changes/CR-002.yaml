@@ -1,0 +1,33 @@
+id: CR-002
+evidence:
+- EVD-03
+- EVD-05
+drafted_by: llm:claude-opus-5-5 (rascunho a partir de inspeção especialista; requer revisão humana)
+affected_specs:
+- 001-pedido-comprador
+change_type: lacuna_da_especificacao
+observed: 'EVD-03: com o foco num botão de produto, o cardápio é recriado a cada 5 s e o foco volta ao início da página. EVD-05: escolher um produto abre uma nova aba sem aviso, e todos os botões têm o mesmo nome.'
+inferred: A atualização periódica (FR-003) e a abertura do formulário (FR-004) foram especificadas sem considerar quem navega por teclado ou leitor de tela.
+justification: FR-003 e FR-004 produzem perda de foco e mudança de contexto inesperada. A atualização do estoque precisa ser mantida (o estoque é real e muda durante o evento).
+wcag:
+- 2.4.3
+- 3.2.1
+- 3.2.2
+- 2.4.6
+spec_changes:
+- spec: 001-pedido-comprador
+  summary: Navegação estável no cardápio
+  modify_criteria:
+  - id: 001/FR-003
+    text: O sistema MUST atualizar o estoque e a situação dos pedidos no cardápio periodicamente, sem que o participante recarregue a página e sem retirar o foco nem alterar a posição de quem está navegando.
+  - id: 001/FR-004
+    text: Ao escolher um produto disponível, o sistema MUST abrir o formulário de pedido daquele produto, com resumo do produto e valor, na mesma aba ou avisando antes que uma nova aba será aberta.
+  add_criteria:
+  - id: 001/FR-014
+    text: Cada botão de escolha de produto MUST ter um nome acessível que identifique o produto (por exemplo, "Enviar Doce Rosa Branca").
+preserve:
+- 001/FR-001
+- 001/FR-002
+- 001/FR-010
+decision:
+  status: pending

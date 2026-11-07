@@ -1,0 +1,30 @@
+id: CR-004
+evidence:
+- EVD-06
+drafted_by: llm:claude-opus-5-5 (rascunho a partir de inspeção especialista; requer revisão humana)
+affected_specs:
+- 002-consulta-pedido
+change_type: lacuna_da_especificacao
+observed: 'EVD-06: o campo do código não tem rótulo (só o exemplo EAC-XK7B); "Pedido não encontrado" não é anunciado e o foco vai para o início da página.'
+inferred: Usuários de leitor de tela podem achar que o campo já está preenchido e não recebem o resultado da consulta. FR-001 a FR-003 exigem que o resultado seja exibido, não percebido.
+justification: Lacuna da especificação. O axe-core não aponta violação porque aceita o placeholder como nome acessível.
+wcag:
+- 1.3.1
+- 3.3.2
+- 4.1.3
+spec_changes:
+- spec: 002-consulta-pedido
+  summary: Campo rotulado e resultado anunciado
+  add_criteria:
+  - id: 002/FR-006
+    text: O campo de código MUST ter um rótulo que o identifique como "Código do pedido", independente do texto de exemplo.
+  - id: 002/FR-007
+    text: O resultado da consulta (pedido encontrado, não encontrado ou campo vazio) MUST ser anunciado por leitores de tela sem que o participante precise procurá-lo, mantendo o foco em posição previsível.
+preserve:
+- 002/FR-001
+- 002/FR-002
+- 002/FR-003
+- 002/FR-004
+- 002/FR-005
+decision:
+  status: pending

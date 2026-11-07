@@ -1,0 +1,18 @@
+id: EVD-05
+source: inspeção especialista
+method: inspeção com árvore de acessibilidade do Chromium e axe-core 4.10 (WCAG 2.2 AA) no site em produção
+participant: —
+inspector: Claude (sem participantes; requer confirmação com usuários)
+date: '2026-11-07'
+verified_in: produção (https://cardapio-teatro-e-diversao-sa.up.railway.app), sem criar pedidos
+feature: 001-pedido-comprador
+assistive_technology: simulação (árvore de acessibilidade do Chromium)
+task: T1 - escolher um produto
+observed: Acionar "Enviar este" abre o formulário em uma nova aba (window.open) sem aviso. Os botões dos produtos têm o mesmo nome ("Enviar este" ou "Esgotado"), sem indicar o produto.
+impact: usuário fica desorientado com a nova aba (o botão Voltar não funciona); na lista de botões do leitor de tela, não sabe a que produto cada botão se refere
+severity: média
+wcag:
+- 3.2.2
+- 2.4.6
+- 2.4.4
+automatic_check: 'axe-core: 0 violações'

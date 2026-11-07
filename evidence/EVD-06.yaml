@@ -1,0 +1,18 @@
+id: EVD-06
+source: inspeção especialista
+method: inspeção com árvore de acessibilidade do Chromium e axe-core 4.10 (WCAG 2.2 AA) no site em produção
+participant: —
+inspector: Claude (sem participantes; requer confirmação com usuários)
+date: '2026-11-07'
+verified_in: produção (https://cardapio-teatro-e-diversao-sa.up.railway.app), sem criar pedidos
+feature: 002-consulta-pedido
+assistive_technology: simulação (árvore de acessibilidade do Chromium)
+task: T5 - consultar um código inexistente
+observed: 'O campo #ticketConsulta não tem rótulo (só o placeholder "EAC-XK7B"). Após consultar EAC-ZZZZ, "Pedido não encontrado. Confira o código." aparece em #resultado-consulta, que não é região viva, e o foco vai para o início da página (BODY).'
+impact: usuário de leitor de tela ouve "editar, EAC-XK7B" (pode achar que já está preenchido) e não recebe o resultado da consulta
+severity: alta
+wcag:
+- 1.3.1
+- 3.3.2
+- 4.1.3
+automatic_check: 'axe-core: 0 violações (o axe aceita o placeholder como nome)'
