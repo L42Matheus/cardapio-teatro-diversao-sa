@@ -1,4 +1,6 @@
 // routes/publicas.js
+// @spec 001-pedido-comprador@4
+// @spec 002-consulta-pedido@2
 // Rotas que o site do comprador usa: ver produtos, criar pedido,
 // consultar status pelo ticket (numero do pedido) e ver estoque restante.
 

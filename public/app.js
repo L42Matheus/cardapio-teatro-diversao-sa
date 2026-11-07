@@ -1,3 +1,4 @@
+// @spec 001-pedido-comprador@4
 let produtoSelecionado = null;
 let ticketAtual = null;
 let intervaloConsulta = null;
@@ -23,20 +24,82 @@ function telefoneValido(contato) {
   return digitos.length === 10 || digitos.length === 11;
 }
 
+// ---------- Erros do formulario (FR-012) ----------
+const CAMPOS_FORMULARIO = ['nomeComprador', 'contato', 'nomeDestinatario', 'equipeDestinatario', 'mensagemEspecial'];
+
+// Mostra a mensagem em #form-erro (role="alert", anunciada sem acao do
+// participante) e, se houver campo, marca-o como invalido e leva o foco a ele.
+function marcarErroCampo(idCampo, mensagem) {
+  const erroEl = document.getElementById('form-erro');
+  erroEl.textContent = mensagem;
+  erroEl.classList.remove('oculto');
+  const campo = idCampo ? document.getElementById(idCampo) : null;
+  if (campo) {
+    campo.setAttribute('aria-invalid', 'true');
+    campo.setAttribute('aria-describedby', 'form-erro');
+    campo.focus();
+  }
+}
+
+function limparErroCampo(campo) {
+  if (!campo) return;
+  campo.removeAttribute('aria-invalid');
+  if (campo.getAttribute('aria-describedby') === 'form-erro') campo.removeAttribute('aria-describedby');
+}
+
+function limparErrosCampos() {
+  CAMPOS_FORMULARIO.forEach(id => limparErroCampo(document.getElementById(id)));
+  const erroEl = document.getElementById('form-erro');
+  if (erroEl) {
+    erroEl.textContent = '';
+    erroEl.classList.add('oculto');
+  }
+}
+
+// Erro de um destinatario: { campo, mensagem } ou null. Usa os textos do tema
+// (ex.: "Nome do suspeito" na prisao).
+function erroDestinatario(d) {
+  if (!nomeValido(d.nomeDestinatario)) {
+    return { campo: 'nomeDestinatario', mensagem: `O campo "${textosFormulario.nome}" precisa ter pelo menos 4 caracteres.` };
+  }
+  if (!d.equipeDestinatario) {
+    return { campo: 'equipeDestinatario', mensagem: `Escolha na lista o campo "${textosFormulario.equipe}".` };
+  }
+  return null;
+}
+
+// Associa a mensagem de erro do servidor ao campo correspondente.
+function campoDoErroServidor(mensagem) {
+  const m = String(mensagem || '').toLowerCase();
+  if (m.includes('whatsapp')) return 'contato';
+  if (m.includes('seu nome')) return 'nomeComprador';
+  if (m.includes('equipe')) return 'equipeDestinatario';
+  if (m.includes('quem vai receber') || m.includes('pessoa')) return 'nomeDestinatario';
+  return null;
+}
+
 // ---------- Status (botão do pânico) ----------
+// Atualizado a cada 5 s; so mexe na pagina quando a pausa muda, para nao
+// tirar o foco nem a posicao de quem esta navegando (FR-003).
 async function carregarStatus() {
   const res = await fetch('/api/status');
   const dados = await res.json();
-  pedidosPausados = !!dados.pausado;
+  const pausado = !!dados.pausado;
+  const mudou = pausado !== pedidosPausados;
+  pedidosPausados = pausado;
 
   const info = document.getElementById('estoque-info');
-  info.textContent = pedidosPausados
+  const texto = pedidosPausados
     ? '⏸️ Pedidos pausados no momento. Volte a tentar em instantes.'
     : '';
+  if (info.textContent !== texto) info.textContent = texto;
 
-  document.querySelectorAll('#lista-produtos button.destaque').forEach(btn => {
-    btn.disabled = pedidosPausados;
-  });
+  if (mudou) {
+    document.querySelectorAll('#lista-produtos .produto-card').forEach(card => {
+      const produto = produtos.find(p => String(p.id) === card.dataset.produtoId);
+      if (produto) atualizarBotaoProduto(card.querySelector('button.destaque'), produto);
+    });
+  }
 }
 
 // ---------- Abas de categoria ----------
@@ -47,22 +110,28 @@ async function carregarCategorias() {
   const abas = document.getElementById('abas-categorias');
   abas.innerHTML = '';
 
-  const todos = criarAba('todos', '✨ Todos');
+  const todos = criarAba('todos', '✨', 'Todos');
   abas.appendChild(todos);
 
   categorias.forEach(cat => {
-    abas.appendChild(criarAba(cat.id, `${cat.emoji} ${cat.nome}`));
+    abas.appendChild(criarAba(cat.id, cat.emoji, cat.nome));
   });
 
   marcarAbaAtiva();
 }
 
-function criarAba(id, texto) {
+// Emoji decorativo fica fora do nome lido (FR-016).
+function htmlEmojiTexto(emoji, texto) {
+  return `${emoji ? `<span aria-hidden="true">${esc(emoji)}</span> ` : ''}${esc(texto)}`;
+}
+
+function criarAba(id, emoji, texto) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'aba';
   btn.dataset.categoria = id;
-  btn.textContent = texto;
+  btn.innerHTML = htmlEmojiTexto(emoji, texto);
+  btn.setAttribute('aria-pressed', 'false');
   btn.onclick = () => {
     categoriaAtiva = id;
     marcarAbaAtiva();
@@ -72,9 +141,12 @@ function criarAba(id, texto) {
   return btn;
 }
 
+// A categoria ativa e informada a tecnologias assistivas por aria-pressed (FR-016).
 function marcarAbaAtiva() {
-  document.querySelectorAll('.aba').forEach(a => {
-    a.classList.toggle('ativa', a.dataset.categoria === categoriaAtiva);
+  document.querySelectorAll('#abas-categorias .aba').forEach(a => {
+    const ativa = a.dataset.categoria === categoriaAtiva;
+    a.classList.toggle('ativa', ativa);
+    a.setAttribute('aria-pressed', ativa ? 'true' : 'false');
   });
 }
 
@@ -85,9 +157,105 @@ async function carregarProdutos() {
   renderizarProdutos();
 }
 
+// Atualizacao periodica (FR-003): atualiza os cartoes no lugar; so recria a
+// lista quando os produtos exibidos mudam, devolvendo foco e rolagem.
+async function atualizarProdutos() {
+  let novos;
+  try {
+    const res = await fetch('/api/produtos');
+    if (!res.ok) return;
+    novos = await res.json();
+  } catch (err) {
+    return; // sem conexao: tenta de novo no proximo ciclo
+  }
+  const assinatura = lista => lista
+    .filter(p => categoriaAtiva === 'todos' || p.categoria === categoriaAtiva)
+    .map(p => [p.id, p.nome, p.descricao, p.foto, p.preco, p.categoria].join('|'))
+    .join('\n');
+  const mesmaLista = assinatura(novos) === assinatura(produtos);
+  produtos = novos;
+
+  if (!mesmaLista) {
+    const focado = document.activeElement;
+    const card = focado && focado.closest ? focado.closest('#lista-produtos .produto-card') : null;
+    const idFocado = card ? card.dataset.produtoId : null;
+    const rolagem = window.scrollY;
+    renderizarProdutos();
+    if (idFocado) {
+      const novoBotao = document.querySelector(`#lista-produtos .produto-card[data-produto-id="${CSS.escape(idFocado)}"] button`);
+      if (novoBotao) novoBotao.focus({ preventScroll: true });
+    }
+    window.scrollTo({ top: rolagem });
+    return;
+  }
+
+  document.querySelectorAll('#lista-produtos .produto-card').forEach(card => {
+    const produto = produtos.find(p => String(p.id) === card.dataset.produtoId);
+    if (!produto) return;
+    const esgotado = Number(produto.estoque) <= 0;
+    card.classList.toggle('esgotado', esgotado);
+    const estoqueEl = card.querySelector('.estoque-info');
+    const htmlEstoque = textoEstoque(produto.estoque);
+    if (estoqueEl && estoqueEl.outerHTML !== htmlEstoque) estoqueEl.outerHTML = htmlEstoque;
+    atualizarBotaoProduto(card.querySelector('button.destaque'), produto);
+  });
+}
+
 function nomeCategoria(id) {
   const c = categorias.find(x => x.id === id);
   return c ? `${c.emoji} ${c.nome}` : id;
+}
+
+function htmlCategoria(id) {
+  const c = categorias.find(x => x.id === id);
+  return c ? htmlEmojiTexto(c.emoji, c.nome) : esc(id);
+}
+
+function produtoIndisponivel(produto) {
+  return pedidosPausados || Number(produto.estoque) <= 0;
+}
+
+// Texto visivel e nome acessivel do botao do produto (FR-014).
+function rotulosBotaoProduto(produto) {
+  if (Number(produto.estoque) <= 0) {
+    return { html: 'Esgotado', nome: `${produto.nome} esgotado` };
+  }
+  if (produto.categoria === 'prisao') {
+    return { html: '<span aria-hidden="true">🚔</span> Denunciar', nome: `Denunciar ${produto.nome}` };
+  }
+  return { html: 'Enviar este', nome: `Enviar ${produto.nome}` };
+}
+
+// Aplica estado e rotulo ao botao sem recria-lo. Um botao com foco nao e
+// desabilitado na hora (isso tiraria o foco dele): fica aria-disabled ate
+// perder o foco (FR-002, FR-003).
+function atualizarBotaoProduto(btn, produto) {
+  if (!btn) return;
+  const rotulos = rotulosBotaoProduto(produto);
+  if (btn.innerHTML !== rotulos.html) btn.innerHTML = rotulos.html;
+  if (btn.getAttribute('aria-label') !== rotulos.nome) btn.setAttribute('aria-label', rotulos.nome);
+
+  const indisponivel = produtoIndisponivel(produto);
+  if (!indisponivel) {
+    btn.disabled = false;
+    btn.removeAttribute('aria-disabled');
+    return;
+  }
+  if (btn.disabled) return;
+  if (document.activeElement === btn) {
+    if (btn.getAttribute('aria-disabled') === 'true') return; // ja aguardando o blur
+    btn.setAttribute('aria-disabled', 'true');
+    btn.addEventListener('blur', () => {
+      const atual = produtos.find(p => String(p.id) === String(produto.id));
+      if (atual && produtoIndisponivel(atual)) {
+        btn.disabled = true;
+        btn.removeAttribute('aria-disabled');
+      }
+    }, { once: true });
+  } else {
+    btn.disabled = true;
+    btn.removeAttribute('aria-disabled');
+  }
 }
 
 // Escapa texto antes de colocar em innerHTML (nomes e equipes digitados).
@@ -122,30 +290,38 @@ function renderizarProdutos() {
 
   filtrados.forEach(p => {
     const esgotado = Number(p.estoque) <= 0;
+    const rotulos = rotulosBotaoProduto(p);
     const div = document.createElement('div');
     div.className = `produto-card${esgotado ? ' esgotado' : ''}`;
+    div.dataset.produtoId = String(p.id);
     div.innerHTML = `
       <div class="imagem">
-        <img src="${p.foto}" alt="${p.nome}" onerror="this.style.opacity=0.2">
+        <img src="${esc(p.foto)}" alt="${esc(p.nome)}" onerror="this.style.opacity=0.2">
       </div>
-      ${p.categoria ? `<span class="categoria-tag">${nomeCategoria(p.categoria)}</span>` : ''}
-      <h3>${p.nome}</h3>
-      <p class="descricao">${p.descricao || ''}</p>
+      ${p.categoria ? `<span class="categoria-tag">${htmlCategoria(p.categoria)}</span>` : ''}
+      <h3>${esc(p.nome)}</h3>
+      <p class="descricao">${esc(p.descricao || '')}</p>
       <div class="preco">R$ ${p.preco.toFixed(2).replace('.', ',')}</div>
       ${textoEstoque(p.estoque)}
-      <button class="destaque" ${(pedidosPausados || esgotado) ? 'disabled' : ''} onclick="abrirFormulario(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">${esgotado ? 'Esgotado' : (p.categoria === 'prisao' ? '🚔 Denunciar' : 'Enviar este')}</button>
+      <button type="button" class="destaque" ${produtoIndisponivel(p) ? 'disabled' : ''} aria-label="${esc(rotulos.nome)}">${rotulos.html}</button>
     `;
+    div.querySelector('button.destaque').addEventListener('click', () => abrirFormulario(p.id, p.nome));
     container.appendChild(div);
   });
 }
 
 // ---------- Formulário ----------
+// O formulario abre na mesma aba (FR-004).
 function abrirFormulario(id, nome) {
+  const produto = produtos.find(p => Number(p.id) === Number(id));
+  if (pedidosPausados) {
+    alert('Os pedidos estão pausados no momento. Tente novamente em instantes.');
+    return;
+  }
+  if (produto && Number(produto.estoque) <= 0) return; // esgotado (botao aria-disabled)
+
   if (!modoPedidoDireto) {
-    const url = `/?produto=${encodeURIComponent(id)}`;
-    const novaAba = window.open(url, '_blank');
-    if (novaAba) novaAba.opener = null;
-    if (!novaAba) window.location.href = url;
+    window.location.href = `/?produto=${encodeURIComponent(id)}`;
     return;
   }
 
@@ -164,7 +340,7 @@ function abrirFormularioNaPagina(id, nome, opcoes = {}) {
   aplicarTemaFormulario(produto);
   document.getElementById('secao-formulario').classList.remove('oculto');
   document.getElementById('secao-pix').classList.add('oculto');
-  document.getElementById('form-erro').classList.add('oculto');
+  limparErrosCampos();
   renderizarDestinatariosPedido();
   atualizarBotoesPedido();
   if (!opcoes.semScroll) {
@@ -226,9 +402,9 @@ function aplicarTemaFormulario(produto) {
   document.getElementById('secao-formulario').classList.toggle('modo-prisao', prisao);
   document.getElementById('faixa-delegacia').classList.toggle('oculto', !prisao);
   document.getElementById('txt-etapa-1').textContent = t.etapa1;
-  const anonimo = document.getElementById('check-anonimo');
-  anonimo.title = t.anonimo;
-  anonimo.setAttribute('aria-label', t.anonimo);
+  // Nome acessivel do checkbox vem do texto oculto dentro do label (FR-015).
+  document.getElementById('check-anonimo').title = t.anonimo;
+  document.getElementById('txt-anonimo').textContent = t.anonimo;
   document.getElementById('txt-etapa-2').textContent = t.etapa2;
   document.getElementById('txt-nome-destinatario').textContent = t.nome;
   document.getElementById('nomeDestinatario').placeholder = t.nomePlaceholder;
@@ -243,7 +419,7 @@ function preencherResumoPedido(produto) {
   const foto = document.getElementById('pedido-resumo-foto');
   foto.src = produto.foto;
   foto.alt = produto.nome;
-  document.getElementById('pedido-resumo-categoria').textContent = produto.categoria ? nomeCategoria(produto.categoria) : '';
+  document.getElementById('pedido-resumo-categoria').innerHTML = produto.categoria ? htmlCategoria(produto.categoria) : '';
   document.getElementById('pedido-resumo-nome').textContent = produto.nome;
   document.getElementById('pedido-resumo-valor').textContent = `R$ ${produto.preco.toFixed(2).replace('.', ',')}`;
 }
@@ -256,8 +432,16 @@ function voltarAoCardapio() {
   pararContagemExpiracao();
   if (intervaloConsulta) { clearInterval(intervaloConsulta); intervaloConsulta = null; }
   if (modoPedidoDireto) {
-    window.close();
-    window.location.href = '/';
+    // Mesma aba (FR-004): volta pelo historico se veio do cardapio (mantem a
+    // posicao), senao abre o cardapio.
+    let veioDoCardapio = false;
+    try {
+      const anterior = document.referrer ? new URL(document.referrer) : null;
+      veioDoCardapio = !!anterior && anterior.origin === window.location.origin
+        && anterior.pathname === '/' && !anterior.searchParams.get('produto');
+    } catch (err) { veioDoCardapio = false; }
+    if (veioDoCardapio && window.history.length > 1) window.history.back();
+    else window.location.href = '/';
     return;
   }
   document.getElementById('secao-formulario').classList.add('oculto');
@@ -329,7 +513,7 @@ function renderizarDestinatariosPedido() {
       <div class="destinatario-item">
         <span><strong>${i + 1}. ${esc(d.nomeDestinatario)}</strong><br><small>${esc(d.equipeDestinatario)}</small></span>
         ${d.anonimo ? '<span class="pill-info">Anônimo</span>' : ''}
-        <button class="secundario pequeno" onclick="removerDestinatario(${i})">Remover</button>
+        <button type="button" class="secundario pequeno" onclick="removerDestinatario(${i})" aria-label="Remover ${esc(d.nomeDestinatario)}">Remover</button>
       </div>
     `).join('')}
   `;
@@ -337,22 +521,16 @@ function renderizarDestinatariosPedido() {
 }
 
 function adicionarDestinatario() {
-  const erroEl = document.getElementById('form-erro');
   const destinatario = dadosDestinatarioAtual();
+  limparErrosCampos();
 
-  if (!destinatario.nomeDestinatario || !destinatario.equipeDestinatario) {
-    erroEl.textContent = 'Preencha o nome e escolha a equipe dessa pessoa antes de adicionar.';
-    erroEl.classList.remove('oculto');
-    return;
-  }
-  if (!nomeValido(destinatario.nomeDestinatario)) {
-    erroEl.textContent = 'O nome de quem vai receber precisa ter pelo menos 4 caracteres.';
-    erroEl.classList.remove('oculto');
+  const erro = erroDestinatario(destinatario);
+  if (erro) {
+    marcarErroCampo(erro.campo, erro.mensagem);
     return;
   }
 
   destinatariosPedido.push(destinatario);
-  erroEl.classList.add('oculto');
   renderizarDestinatariosPedido();
   limparDestinatarioAtual();
 }
@@ -383,23 +561,28 @@ async function enviarPedido() {
   const nomeComprador = document.getElementById('nomeComprador').value.trim();
   const contato = document.getElementById('contato').value.trim();
   const destinatarios = montarDestinatariosParaEnvio();
-  const erroEl = document.getElementById('form-erro');
+  limparErrosCampos();
 
+  // Erro de validacao: foco no primeiro campo a corrigir, campo marcado como
+  // invalido e mensagem anunciada (#form-erro e role="alert") (FR-006, FR-012).
   if (!nomeValido(nomeComprador)) {
-    erroEl.textContent = 'Seu nome precisa ter pelo menos 4 caracteres.';
-    erroEl.classList.remove('oculto');
+    marcarErroCampo('nomeComprador', 'Seu nome precisa ter pelo menos 4 caracteres.');
     return;
   }
 
   if (!telefoneValido(contato)) {
-    erroEl.textContent = 'Informe um WhatsApp válido com DDD. Ex: (83) 90000-0000.';
-    erroEl.classList.remove('oculto');
+    marcarErroCampo('contato', 'Informe um WhatsApp válido com DDD. Ex: (83) 90000-0000.');
     return;
   }
 
-  if (destinatarios.length === 0 || destinatarios.some(d => !nomeValido(d.nomeDestinatario) || !d.equipeDestinatario)) {
-    erroEl.textContent = 'Preencha seu nome e os dados de quem vai receber.';
-    erroEl.classList.remove('oculto');
+  if (destinatarios.length === 0) {
+    marcarErroCampo('nomeDestinatario', `Preencha o campo "${textosFormulario.nome}" com pelo menos 4 caracteres.`);
+    return;
+  }
+  const invalido = destinatarios.find(d => erroDestinatario(d));
+  if (invalido) {
+    const erro = erroDestinatario(invalido);
+    marcarErroCampo(erro.campo, erro.mensagem);
     return;
   }
 
@@ -424,8 +607,8 @@ async function enviarPedido() {
     const dados = await res.json();
 
     if (!res.ok) {
-      erroEl.textContent = dados.erro || 'Erro ao criar pedido.';
-      erroEl.classList.remove('oculto');
+      const mensagem = dados.erro || 'Erro ao criar pedido.';
+      marcarErroCampo(campoDoErroServidor(mensagem), mensagem);
       return;
     }
 
@@ -443,12 +626,13 @@ async function enviarPedido() {
       top: document.getElementById('secao-pix').offsetTop - 20,
       behavior: 'smooth'
     });
+    // O botao focado sumiu com o formulario: leva o foco ao titulo do Pix.
+    document.getElementById('titulo-pix')?.focus({ preventScroll: true });
 
     iniciarContagemExpiracao(dados.pix.expiraEm);
     iniciarPollingStatus(dados.ticket);
   } catch (err) {
-    erroEl.textContent = 'Falha de conexão. Verifique sua internet e tente novamente.';
-    erroEl.classList.remove('oculto');
+    marcarErroCampo(null, 'Falha de conexão. Verifique sua internet e tente novamente.');
   } finally {
     enviandoPedido = false;
     btnGerar.disabled = false;
@@ -545,10 +729,76 @@ function pararContagemExpiracao() {
   }
 }
 
+// ---------- Dialogo de confirmacao (FR-013) ----------
+// Os popups sao dialogos (role="dialog" no .popup-card): ao abrir recebem o
+// foco e o resto da pagina fica inerte; ao fechar o foco volta para onde estava.
+let dialogoAberto = null;
+let focoAntesDoDialogo = null;
+const PARTES_PAGINA = ['.eac-header', '.eac-faixa', 'main', '.eac-rodape'];
+
+function elementosFocaveis(container) {
+  return Array.from(container.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+    .filter(el => !el.disabled && el.offsetParent !== null);
+}
+
+function abrirDialogo(popup) {
+  if (dialogoAberto && dialogoAberto !== popup) fecharDialogo(dialogoAberto, { semDevolverFoco: true });
+  if (!dialogoAberto) focoAntesDoDialogo = document.activeElement;
+  dialogoAberto = popup;
+  popup.classList.remove('oculto');
+  PARTES_PAGINA.forEach(sel => document.querySelectorAll(sel).forEach(el => { el.inert = true; }));
+  const card = popup.querySelector('[role="dialog"]') || popup;
+  card.focus({ preventScroll: true });
+}
+
+function fecharDialogo(popup, opcoes = {}) {
+  popup.classList.add('oculto');
+  if (dialogoAberto !== popup) return;
+  dialogoAberto = null;
+  PARTES_PAGINA.forEach(sel => document.querySelectorAll(sel).forEach(el => { el.inert = false; }));
+  if (opcoes.semDevolverFoco) return;
+  const destino = focoAntesDoDialogo && document.contains(focoAntesDoDialogo) && focoAntesDoDialogo.offsetParent !== null
+    ? focoAntesDoDialogo
+    : document.getElementById('titulo-pix');
+  focoAntesDoDialogo = null;
+  destino?.focus({ preventScroll: true });
+}
+
+// Quando o botao "Entendi" aparece (temas obrigado/policia), o foco vai para ele.
+function dialogoPronto(popup) {
+  popup.classList.add('pronto');
+  if (dialogoAberto !== popup) return;
+  const botao = popup.querySelector('button');
+  if (botao && botao.offsetParent !== null) botao.focus({ preventScroll: true });
+}
+
+document.addEventListener('keydown', evento => {
+  if (!dialogoAberto) return;
+  if (evento.key === 'Escape') {
+    evento.preventDefault();
+    const fechar = { 'popup-pagamento': fecharPopupPagamento, 'popup-obrigado': fecharPopupObrigado, 'popup-policia': fecharPopupPolicia }[dialogoAberto.id];
+    if (fechar) fechar();
+    return;
+  }
+  if (evento.key !== 'Tab') return;
+  const card = dialogoAberto.querySelector('[role="dialog"]') || dialogoAberto;
+  const focaveis = elementosFocaveis(card);
+  if (focaveis.length === 0) { evento.preventDefault(); card.focus(); return; }
+  const primeiro = focaveis[0];
+  const ultimo = focaveis[focaveis.length - 1];
+  if (evento.shiftKey && (document.activeElement === primeiro || document.activeElement === card)) {
+    evento.preventDefault(); ultimo.focus();
+  } else if (!evento.shiftKey && document.activeElement === ultimo) {
+    evento.preventDefault(); primeiro.focus();
+  } else if (!card.contains(document.activeElement)) {
+    evento.preventDefault(); primeiro.focus();
+  }
+});
+
 // ---------- Popup de pagamento confirmado ----------
 function mostrarPopupPagamento(ticket) {
   document.getElementById('popup-pagamento-ticket').textContent = ticket;
-  document.getElementById('popup-pagamento').classList.remove('oculto');
+  abrirDialogo(document.getElementById('popup-pagamento'));
 }
 
 // Prisao: em vez do popup comum, mostra a tela "A Policia EAC esta a
@@ -569,10 +819,11 @@ function mostrarPopupPolicia(dados) {
     : 'O mandado foi expedido e a nossa polícia já saiu atrás do suspeito.';
   document.getElementById('popup-policia-ticket').textContent = dados.ticket;
   const popup = document.getElementById('popup-policia');
-  popup.classList.remove('pronto', 'oculto');
+  popup.classList.remove('pronto');
+  abrirDialogo(popup);
   // "Carregando" por alguns segundos, depois mostra o codigo e o botao.
   clearTimeout(mostrarPopupPolicia.timer);
-  mostrarPopupPolicia.timer = setTimeout(() => popup.classList.add('pronto'), 3500);
+  mostrarPopupPolicia.timer = setTimeout(() => dialogoPronto(popup), 3500);
   return true;
 }
 
@@ -632,22 +883,23 @@ function mostrarPopupObrigado(dados) {
   document.getElementById('popup-obrigado-texto').textContent = tema.texto(produto, juntarNomes(nomes));
   document.getElementById('popup-obrigado-ticket').textContent = dados.ticket;
   const popup = document.getElementById('popup-obrigado');
-  popup.className = `popup-overlay popup-obrigado ${tema.classe || ''}`.trim();
+  popup.className = `popup-overlay popup-obrigado ${tema.classe || ''} oculto`.replace(/\s+/g, ' ');
+  abrirDialogo(popup);
   clearTimeout(mostrarPopupObrigado.timer);
-  mostrarPopupObrigado.timer = setTimeout(() => popup.classList.add('pronto'), 3500);
+  mostrarPopupObrigado.timer = setTimeout(() => dialogoPronto(popup), 3500);
   return true;
 }
 
 function fecharPopupObrigado() {
-  document.getElementById('popup-obrigado').classList.add('oculto');
+  fecharDialogo(document.getElementById('popup-obrigado'));
 }
 
 function fecharPopupPolicia() {
-  document.getElementById('popup-policia').classList.add('oculto');
+  fecharDialogo(document.getElementById('popup-policia'));
 }
 
 function fecharPopupPagamento() {
-  document.getElementById('popup-pagamento').classList.add('oculto');
+  fecharDialogo(document.getElementById('popup-pagamento'));
 }
 
 function legendaStatus(status) {
@@ -708,7 +960,13 @@ async function carregarEquipes() {
     document.getElementById(id)?.addEventListener('input', atualizarBotoesPedido);
     document.getElementById(id)?.addEventListener('change', atualizarBotoesPedido);
   });
+  // Campo alterado deixa de ser marcado como invalido (FR-012).
+  CAMPOS_FORMULARIO.forEach(id => {
+    const campo = document.getElementById(id);
+    campo?.addEventListener('input', () => limparErroCampo(campo));
+    campo?.addEventListener('change', () => limparErroCampo(campo));
+  });
   atualizarBotoesPedido();
   setInterval(carregarStatus, 5000);
-  setInterval(carregarProdutos, 5000);
+  setInterval(atualizarProdutos, 5000);
 })();

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- @spec 001-pedido-comprador@4 -->
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
@@ -17,7 +18,7 @@
       <p>EAC — Paróquia de Santo Antônio</p>
     </div>
   </div>
-  <p class="eac-estoque" id="estoque-info"></p>
+  <p class="eac-estoque" id="estoque-info" role="status"></p>
 </header>
 <div class="eac-faixa"></div>
 
@@ -28,7 +29,7 @@
       <h2>Escolha o que enviar</h2>
       <a href="/consultar.html" class="botao-link secundario">Consultar meu pedido</a>
     </div>
-    <div class="abas" id="abas-categorias"></div>
+    <div class="abas" id="abas-categorias" role="group" aria-label="Categorias"></div>
     <div class="produtos" id="lista-produtos"></div>
   </section>
 
@@ -53,8 +54,9 @@
     </div>
     <div class="etapa-head">
       <h2 id="txt-etapa-1">1. Quem está enviando?</h2>
-      <label class="check-opcao check-anonimo" id="check-anonimo" title="Enviar anônimo" aria-label="Enviar anônimo">
+      <label class="check-opcao check-anonimo" id="check-anonimo" title="Enviar anônimo">
         <span aria-hidden="true">🕵️</span>
+        <span class="sr-only" id="txt-anonimo">Enviar anônimo</span>
         <input id="anonimo" type="checkbox">
       </label>
     </div>
@@ -78,7 +80,7 @@
     <label><span id="txt-mensagem">Mensagem ou instrução especial</span>
       <textarea id="mensagemEspecial" rows="2" maxlength="50" placeholder="Recado curto, até 50 caracteres"></textarea>
     </label>
-    <div id="form-erro" class="aviso erro oculto"></div>
+    <div id="form-erro" class="aviso erro oculto" role="alert"></div>
     <div id="lista-destinatarios" class="destinatarios-box oculto"></div>
     <div class="acoes-formulario">
       <button id="btn-adicionar-destinatario" class="secundario" onclick="adicionarDestinatario()">Enviar para mais uma pessoa</button>
@@ -88,18 +90,18 @@
   </section>
 
   <section id="secao-pix" class="card oculto">
-    <h2>Pagamento Pix</h2>
+    <h2 id="titulo-pix" tabindex="-1">Pagamento Pix</h2>
     <div class="ticket-box">
       <div style="font-size:0.75rem; color:var(--texto-fraco); text-transform:uppercase;">Seu código</div>
       <div class="numero" id="pix-ticket"></div>
       <div style="font-size:0.75rem; color:var(--texto-fraco); margin-top:6px;">Guarde este código para consultar seu pedido</div>
     </div>
     <p>Valor: <strong id="pix-valor"></strong></p>
-    <p>Copia e cola:</p>
+    <p><label for="pix-copiacola">Copia e cola:</label></p>
     <textarea readonly rows="3" id="pix-copiacola"></textarea>
-    <button type="button" class="secundario" id="btn-copiar-pix" onclick="copiarPixCopiaECola()">📋 Copiar código</button>
+    <button type="button" class="secundario" id="btn-copiar-pix" onclick="copiarPixCopiaECola()"><span aria-hidden="true">📋</span> Copiar código</button>
     <div id="pix-itens" class="destinatarios-box oculto"></div>
-    <p id="pix-status" style="margin-top:12px;">Status: <span class="status-pendente_pagamento">aguardando pagamento...</span></p>
+    <p id="pix-status" role="status" style="margin-top:12px;">Status: <span class="status-pendente_pagamento">aguardando pagamento...</span></p>
     <div id="pix-expira" class="aviso info oculto"></div>
     <div class="aviso info">
       Guarde o número do ticket para acompanhar o status da entrega mais abaixo.
@@ -113,9 +115,9 @@
 </main>
 
 <div id="popup-pagamento" class="popup-overlay oculto" onclick="if (event.target === this) fecharPopupPagamento();">
-  <div class="popup-card">
-    <div class="popup-icone">✅</div>
-    <h2>Pagamento confirmado!</h2>
+  <div class="popup-card" role="dialog" aria-modal="true" aria-labelledby="popup-pagamento-titulo" aria-describedby="popup-pagamento-texto" tabindex="-1">
+    <div class="popup-icone" aria-hidden="true">✅</div>
+    <h2 id="popup-pagamento-titulo">Pagamento confirmado!</h2>
     <p id="popup-pagamento-texto">Recebemos seu Pix. Já pode acompanhar a entrega pelo código abaixo.</p>
     <div class="ticket-box">
       <div style="font-size:0.75rem; color:var(--texto-fraco); text-transform:uppercase;">Seu código</div>
@@ -127,10 +129,10 @@
 
 <!-- Rosas e botons: depois do Pix, tela de agradecimento -->
 <div id="popup-obrigado" class="popup-overlay popup-obrigado oculto">
-  <div class="popup-card obrigado-card">
+  <div class="popup-card obrigado-card" role="dialog" aria-modal="true" aria-labelledby="popup-obrigado-confirmado popup-obrigado-titulo" aria-describedby="popup-obrigado-texto" tabindex="-1">
     <div class="obrigado-coracoes" id="popup-obrigado-emojis" aria-hidden="true"><span>💛</span><span>❤️</span><span>💛</span><span>🤍</span><span>❤️</span><span>💛</span></div>
     <div class="obrigado-foto"><img id="popup-obrigado-foto" src="" alt=""></div>
-    <div class="obrigado-confirmado">✅ Pagamento confirmado!</div>
+    <div class="obrigado-confirmado" id="popup-obrigado-confirmado"><span aria-hidden="true">✅</span> Pagamento confirmado!</div>
     <h2 id="popup-obrigado-titulo">Obrigado pelo carinho! 💛</h2>
     <p id="popup-obrigado-texto">A nossa equipe de entrega já vai levar o seu presente.</p>
     <div class="obrigado-barra" aria-hidden="true"><span></span></div>
@@ -146,11 +148,11 @@
 
 <!-- Prisao: depois do Pix, tela de "a Policia EAC esta a caminho" -->
 <div id="popup-policia" class="popup-overlay popup-policia oculto">
-  <div class="popup-card policia-card">
+  <div class="popup-card policia-card" role="dialog" aria-modal="true" aria-labelledby="popup-policia-confirmado popup-policia-titulo" aria-describedby="popup-policia-texto" tabindex="-1">
     <div class="policia-luzes" aria-hidden="true"><span></span><span></span></div>
     <img id="popup-policia-foto" class="policia-foto" src="" alt="Policial da Polícia EAC">
-    <div class="policia-confirmado">✅ Pagamento confirmado!</div>
-    <h2>🚨 A Polícia EAC está a caminho</h2>
+    <div class="policia-confirmado" id="popup-policia-confirmado"><span aria-hidden="true">✅</span> Pagamento confirmado!</div>
+    <h2 id="popup-policia-titulo"><span aria-hidden="true">🚨</span> A Polícia EAC está a caminho</h2>
     <p id="popup-policia-texto">O mandado foi expedido e a nossa polícia já saiu atrás do suspeito.</p>
     <div class="policia-barra" aria-hidden="true"><span></span></div>
     <div class="policia-final">

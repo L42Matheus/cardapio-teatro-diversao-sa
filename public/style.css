@@ -1,3 +1,5 @@
+/* @spec 001-pedido-comprador@4 */
+/* @spec 002-consulta-pedido@2 */
 /* ------------------------------------------------------------------
    EAC Paróquia de Santo Antônio — identidade visual
    Paleta inspirada no logo: cruz dourada + raios (vermelho, amarelo,
@@ -311,7 +313,8 @@ h2 {
   transform: translateY(-2px);
   box-shadow: var(--sombra-forte);
 }
-.produto-card.esgotado {
+/* Esgotado: so a foto fica cinza/esmaecida; o texto mantem contraste >= 4,5:1 (FR-017). */
+.produto-card.esgotado .imagem {
   filter: grayscale(1);
   opacity: 0.6;
 }
@@ -325,7 +328,7 @@ h2 {
   margin: 0 0 6px;
 }
 .produto-card .estoque-info.zerado {
-  color: var(--vermelho);
+  color: #c62828;
   font-weight: 600;
 }
 .produto-card .estoque-info.tem,
@@ -334,7 +337,21 @@ h2 {
   font-weight: 800;
 }
 .produto-card .estoque-info.tem { color: var(--verde); }
-.produto-card .estoque-info.ultimas { color: var(--vermelho); }
+.produto-card .estoque-info.ultimas { color: #c62828; }
+
+/* Botoes indisponiveis do cardapio (esgotado/pausado): legiveis, sem opacity (FR-017). */
+#lista-produtos button:disabled,
+#lista-produtos button[aria-disabled="true"] {
+  opacity: 1;
+  background: #efefec;
+  color: #4a4a4a;
+  border-color: #c9c9c4;
+  cursor: not-allowed;
+}
+#lista-produtos button[aria-disabled="true"]:hover {
+  background: #efefec;
+  color: #4a4a4a;
+}
 .produto-card .imagem {
   background: var(--creme-2);
   border-radius: 8px;
@@ -669,6 +686,21 @@ input:focus, select:focus, textarea:focus {
 }
 
 .oculto { display: none !important; }
+
+/* Texto so para leitores de tela (nomes acessiveis sem mudar o visual). */
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Elementos que recebem foco por script (titulos, dialogos). */
+[tabindex="-1"]:focus { outline: none; }
+[tabindex="-1"]:focus-visible { outline: 3px solid var(--amarelo); outline-offset: 2px; }
 
 .aviso {
   padding: 12px 14px;
