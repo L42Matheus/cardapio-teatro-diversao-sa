@@ -234,6 +234,11 @@ h2 {
   flex-wrap: wrap;
   justify-content: center;
 }
+.consultar-form label {
+  flex: 1 1 100%;
+  margin-top: 0;
+  text-align: center;
+}
 .consultar-form input {
   flex: 1 1 220px;
   padding: 12px 14px;

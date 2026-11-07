@@ -1,3 +1,4 @@
+// @spec 002-consulta-pedido@2
 // Escapa texto antes de colocar em innerHTML (nomes e equipes sao digitados
 // por quem compra).
 function esc(texto) {
@@ -15,23 +16,54 @@ function legendaStatus(status) {
   return legendas[status] || status;
 }
 
+// #resultado-consulta e uma regiao role="status": o resultado e anunciado por
+// leitores de tela sem que o participante precise procura-lo (FR-007). Limpa
+// antes de escrever para que um resultado repetido seja anunciado de novo.
+let temporizadorResultado = null;
+function mostrarResultado(html) {
+  const resultadoEl = document.getElementById('resultado-consulta');
+  clearTimeout(temporizadorResultado);
+  resultadoEl.innerHTML = '';
+  temporizadorResultado = setTimeout(() => { resultadoEl.innerHTML = html; }, 50);
+}
+
+function marcarCampoInvalido(input, invalido) {
+  if (invalido) {
+    input.setAttribute('aria-invalid', 'true');
+    input.setAttribute('aria-describedby', 'resultado-consulta');
+  } else {
+    input.removeAttribute('aria-invalid');
+    input.removeAttribute('aria-describedby');
+  }
+}
+
 async function consultarTicket() {
   const input = document.getElementById('ticketConsulta');
   const ticket = input.value.trim().toUpperCase();
-  const resultadoEl = document.getElementById('resultado-consulta');
   if (!ticket) {
-    resultadoEl.innerHTML = `<div class="aviso erro">Digite o código do pedido.</div>`;
+    // Foco previsivel: no proprio campo a preencher (FR-003, FR-007).
+    marcarCampoInvalido(input, true);
+    mostrarResultado(`<div class="aviso erro">Digite o código do pedido.</div>`);
+    input.focus();
     return;
   }
+  marcarCampoInvalido(input, false);
 
-  resultadoEl.innerHTML = `<div class="aviso info">Consultando...</div>`;
+  mostrarResultado(`<div class="aviso info">Consultando...</div>`);
 
-  const res = await fetch(`/api/pedidos/${encodeURIComponent(ticket)}`);
+  let res;
+  try {
+    res = await fetch(`/api/pedidos/${encodeURIComponent(ticket)}`);
+  } catch (err) {
+    mostrarResultado(`<div class="aviso erro">Falha de conexão. Verifique sua internet e tente novamente.</div>`);
+    return;
+  }
   if (!res.ok) {
-    resultadoEl.innerHTML = `<div class="aviso erro">Pedido não encontrado. Confira o código.</div>`;
+    mostrarResultado(`<div class="aviso erro">Pedido não encontrado. Confira o código.</div>`);
     return;
   }
   const dados = await res.json();
+  const unico = Array.isArray(dados.itens) && dados.itens.length === 1 ? dados.itens[0] : null;
   const itens = Array.isArray(dados.itens) && dados.itens.length > 1
     ? `
       <div style="margin-top:8px;">
@@ -43,9 +75,9 @@ async function consultarTicket() {
         `).join('')}
       </div>
     `
-    : `<div>${esc(dados.produto)} para <strong>${esc(dados.destinatario)}</strong></div>`;
+    : `<div>${esc(dados.produto)} para <strong>${esc(dados.destinatario)}</strong>${unico && unico.equipe ? `<br><small>Equipe: ${esc(unico.equipe)}</small>` : ''}</div>`;
 
-  resultadoEl.innerHTML = `
+  mostrarResultado(`
     <div class="aviso sucesso">
       <div style="font-size:1.1rem; margin-bottom:6px;">
         <strong>${esc(dados.ticket)}</strong>
@@ -55,8 +87,13 @@ async function consultarTicket() {
         Status: <span class="status-${esc(dados.status)}">${esc(legendaStatus(dados.status))}</span>
       </div>
     </div>
-  `;
+  `);
 }
+
+// Ao digitar, o campo deixa de ser marcado como invalido.
+document.getElementById('ticketConsulta').addEventListener('input', evento => {
+  if (evento.target.value.trim()) marcarCampoInvalido(evento.target, false);
+});
 
 // Se o usuário chegou com ?codigo=EAC-XXXX na URL, já consulta.
 (function autoConsulta() {
