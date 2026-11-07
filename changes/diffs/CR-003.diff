@@ -1,0 +1,30 @@
+--- a/specs/001-pedido-comprador/spec.md
++++ b/specs/001-pedido-comprador/spec.md
+@@ -6,7 +6,7 @@
+ 
+ **Status**: Approved
+ 
+-**Version**: 3
++**Version**: 4
+ 
+ **Input**: User description: "Especificação brownfield do fluxo público de pedido do site Cardápio, Teatro e Diversão SA, descrevendo o comportamento em produção em 2026-11-07 (commit d4e635b): escolha do produto no cardápio, formulário de pedido, cobrança Pix e confirmação do pagamento."
+ 
+@@ -120,6 +120,13 @@
+   página ao ser fechada.
+ - **FR-014**: Cada botão de escolha de produto MUST ter um nome acessível que identifique o produto
+   (por exemplo, "Enviar Doce Rosa Branca").
++- **FR-015**: Todo controle do formulário e do cardápio MUST ter um nome acessível que descreva sua
++  função (por exemplo, a opção de envio anônimo MUST ser lida como "Enviar anônimo" ou "Denúncia
++  anônima").
++- **FR-016**: A categoria ativa do cardápio MUST ser informada a tecnologias assistivas, e emojis
++  decorativos MUST NOT fazer parte do nome lido das categorias.
++- **FR-017**: Os textos do cardápio, inclusive em produtos esgotados, MUST ter contraste mínimo de
++  4,5:1 com o fundo.
+ 
+ ### Key Entities *(include if feature involves data)*
+ 
+@@ -157,3 +164,4 @@
+ | 1 | Versão inicial (brownfield, commit d4e635b) | — | — | — |
+ | 2 | Erros e confirmação do pagamento percebidos por tecnologias assistivas | CR-001 | EVD-01, EVD-04 | Lucas Matheus Silva |
+ | 3 | Navegação estável no cardápio | CR-002 | EVD-03, EVD-05 | Lucas Matheus Silva |
++| 4 | Nomes, estados e contraste dos controles | CR-003 | EVD-02, EVD-07, EVD-08 | Lucas Matheus Silva |

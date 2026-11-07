@@ -29,4 +29,9 @@ preserve:
 - 001/FR-005
 - 001/FR-011
 decision:
-  status: pending
+  status: approved
+  by: Lucas Matheus Silva
+  at: '2026-11-07T11:03:18-03:00'
+  note: Aprovação em bloco das CR-001 a CR-004 pelo chat em 2026-11-07 ("Pode fazer"), após apresentação das propostas; evidências de inspeção, a confirmar com usuários.
+verification_notes:
+- '2026-11-07: EVD-02 refutada na verificação independente (ver evidence/EVD-02.yaml). 001/FR-015 já é atendido pelo código atual.'

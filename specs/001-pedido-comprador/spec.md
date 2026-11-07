@@ -6,7 +6,7 @@
 
 **Status**: Approved
 
-**Version**: 1
+**Version**: 4
 
 **Input**: User description: "Especificação brownfield do fluxo público de pedido do site Cardápio, Teatro e Diversão SA, descrevendo o comportamento em produção em 2026-11-07 (commit d4e635b): escolha do produto no cardápio, formulário de pedido, cobrança Pix e confirmação do pagamento."
 
@@ -92,10 +92,12 @@ demonstração, pelo Pix simulado); a confirmação aparece sem recarregar a pá
   estoque, com filtro por categoria.
 - **FR-002**: O sistema MUST impedir a escolha de produtos esgotados e de qualquer produto enquanto os
   pedidos estiverem pausados.
-- **FR-003**: O sistema MUST atualizar o estoque e a situação dos pedidos no cardápio periodicamente,
-  sem que o participante recarregue a página.
+- **FR-003**: O sistema MUST atualizar o estoque e a situação dos pedidos no cardápio
+  periodicamente, sem que o participante recarregue a página e sem retirar o foco nem alterar a
+  posição de quem está navegando.
 - **FR-004**: Ao escolher um produto disponível, o sistema MUST abrir o formulário de pedido daquele
-  produto, com resumo do produto e valor.
+  produto, com resumo do produto e valor, na mesma aba ou avisando antes que uma nova aba será
+  aberta.
 - **FR-005**: O formulário MUST coletar nome de quem envia (mínimo de 4 caracteres), WhatsApp com DDD
   (10 ou 11 dígitos), nome de quem recebe (mínimo de 4 caracteres), equipe de quem recebe (de uma
   lista), opção de envio anônimo e mensagem de até 50 caracteres.
@@ -110,6 +112,21 @@ demonstração, pelo Pix simulado); a confirmação aparece sem recarregar a pá
   confirmação com o código do pedido, no tema do produto.
 - **FR-011**: Para produtos da categoria prisão, o sistema MUST apresentar o formulário como
   "denúncia" (textos de suspeito, crime e mandado), mantendo as mesmas regras de validação.
+- **FR-012**: Quando um dado do formulário for inválido, o sistema MUST levar o foco ao primeiro
+  campo a corrigir, identificá-lo como inválido para tecnologias assistivas e fazer com que a
+  mensagem de erro seja anunciada por leitores de tela sem ação adicional do participante.
+- **FR-013**: A confirmação do pagamento MUST ser anunciada por leitores de tela; quando exibida em
+  janela sobre a página, a janela MUST ser identificada como diálogo, receber o foco e devolvê-lo à
+  página ao ser fechada.
+- **FR-014**: Cada botão de escolha de produto MUST ter um nome acessível que identifique o produto
+  (por exemplo, "Enviar Doce Rosa Branca").
+- **FR-015**: Todo controle do formulário e do cardápio MUST ter um nome acessível que descreva sua
+  função (por exemplo, a opção de envio anônimo MUST ser lida como "Enviar anônimo" ou "Denúncia
+  anônima").
+- **FR-016**: A categoria ativa do cardápio MUST ser informada a tecnologias assistivas, e emojis
+  decorativos MUST NOT fazer parte do nome lido das categorias.
+- **FR-017**: Os textos do cardápio, inclusive em produtos esgotados, MUST ter contraste mínimo de
+  4,5:1 com o fundo.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -145,3 +162,6 @@ demonstração, pelo Pix simulado); a confirmação aparece sem recarregar a pá
 | Versão | Mudança | Proposta | Evidência | Aprovada por |
 |--------|---------|----------|-----------|--------------|
 | 1 | Versão inicial (brownfield, commit d4e635b) | — | — | — |
+| 2 | Erros e confirmação do pagamento percebidos por tecnologias assistivas | CR-001 | EVD-01, EVD-04 | Lucas Matheus Silva |
+| 3 | Navegação estável no cardápio | CR-002 | EVD-03, EVD-05 | Lucas Matheus Silva |
+| 4 | Nomes, estados e contraste dos controles | CR-003 | EVD-02, EVD-07, EVD-08 | Lucas Matheus Silva |

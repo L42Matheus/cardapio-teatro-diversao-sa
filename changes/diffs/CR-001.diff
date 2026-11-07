@@ -1,0 +1,29 @@
+--- a/specs/001-pedido-comprador/spec.md
++++ b/specs/001-pedido-comprador/spec.md
+@@ -6,7 +6,7 @@
+ 
+ **Status**: Approved
+ 
+-**Version**: 1
++**Version**: 2
+ 
+ **Input**: User description: "Especificação brownfield do fluxo público de pedido do site Cardápio, Teatro e Diversão SA, descrevendo o comportamento em produção em 2026-11-07 (commit d4e635b): escolha do produto no cardápio, formulário de pedido, cobrança Pix e confirmação do pagamento."
+ 
+@@ -110,6 +110,12 @@
+   confirmação com o código do pedido, no tema do produto.
+ - **FR-011**: Para produtos da categoria prisão, o sistema MUST apresentar o formulário como
+   "denúncia" (textos de suspeito, crime e mandado), mantendo as mesmas regras de validação.
++- **FR-012**: Quando um dado do formulário for inválido, o sistema MUST levar o foco ao primeiro
++  campo a corrigir, identificá-lo como inválido para tecnologias assistivas e fazer com que a
++  mensagem de erro seja anunciada por leitores de tela sem ação adicional do participante.
++- **FR-013**: A confirmação do pagamento MUST ser anunciada por leitores de tela; quando exibida em
++  janela sobre a página, a janela MUST ser identificada como diálogo, receber o foco e devolvê-lo à
++  página ao ser fechada.
+ 
+ ### Key Entities *(include if feature involves data)*
+ 
+@@ -145,3 +151,4 @@
+ | Versão | Mudança | Proposta | Evidência | Aprovada por |
+ |--------|---------|----------|-----------|--------------|
+ | 1 | Versão inicial (brownfield, commit d4e635b) | — | — | — |
++| 2 | Erros e confirmação do pagamento percebidos por tecnologias assistivas | CR-001 | EVD-01, EVD-04 | Lucas Matheus Silva |

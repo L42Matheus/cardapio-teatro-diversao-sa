@@ -1,0 +1,28 @@
+--- a/specs/002-consulta-pedido/spec.md
++++ b/specs/002-consulta-pedido/spec.md
+@@ -6,7 +6,7 @@
+ 
+ **Status**: Approved
+ 
+-**Version**: 1
++**Version**: 2
+ 
+ **Input**: User description: "Especificação brownfield da página pública de consulta de pedidos (consultar.html), descrevendo o comportamento em produção em 2026-11-07 (commit d4e635b)."
+ 
+@@ -51,6 +51,11 @@
+ - **FR-004**: O sistema MUST consultar automaticamente o código recebido no endereço da página.
+ - **FR-005**: Os dados digitados por compradores (nomes, equipes) MUST ser exibidos como texto, sem
+   interpretação como código da página.
++- **FR-006**: O campo de código MUST ter um rótulo que o identifique como "Código do pedido",
++  independente do texto de exemplo.
++- **FR-007**: O resultado da consulta (pedido encontrado, não encontrado ou campo vazio) MUST ser
++  anunciado por leitores de tela sem que o participante precise procurá-lo, mantendo o foco em
++  posição previsível.
+ 
+ ### Key Entities *(include if feature involves data)*
+ 
+@@ -73,3 +78,4 @@
+ | Versão | Mudança | Proposta | Evidência | Aprovada por |
+ |--------|---------|----------|-----------|--------------|
+ | 1 | Versão inicial (brownfield, commit d4e635b) | — | — | — |
++| 2 | Campo rotulado e resultado anunciado | CR-004 | EVD-06 | Lucas Matheus Silva |

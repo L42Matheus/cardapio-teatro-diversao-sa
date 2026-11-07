@@ -15,3 +15,5 @@ wcag:
 - 1.3.1
 - 4.1.2
 automatic_check: 'axe-core: 0 violações'
+status: refutada
+refutation: 'Em 2026-11-07, a árvore de acessibilidade do Chromium (CDP Accessibility.getFullAXTree) e o Playwright calcularam o nome acessível "Enviar anônimo" (fonte: elemento label relacionado). O valor "on" observado na inspeção veio da ferramenta de inspeção do navegador integrado, que exibiu o valor do campo, e não o nome. A evidência foi um falso positivo da inspeção; o requisito 001/FR-015 (CR-003) permanece como proteção contra regressão.'
