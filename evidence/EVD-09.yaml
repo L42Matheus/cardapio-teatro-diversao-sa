@@ -1,0 +1,13 @@
+id: EVD-09
+source: verificação automática
+method: axe-core 4.14 (WCAG 2.2 AA) na verificação independente da implementação do agente (commit 3b8182b)
+participant: —
+date: '2026-11-07'
+feature: 001-pedido-comprador
+task: T1 - escolher um produto
+observed: Após a implementação de 001/FR-014 (CR-002), o axe-core passou a apontar label-content-name-mismatch em 9 botões do cardápio. O texto visível do botão é "Enviar este" e o nome acessível passou a ser "Enviar <produto>".
+impact: quem usa controle por voz e diz o texto visível ("Enviar este") pode não acionar o botão; regressão introduzida pela correção
+severity: média
+wcag: ['2.5.3']
+automatic_check: 'axe-core: label-content-name-mismatch (serious, 9 nós); tipo ausente na linha de base'
+notes: Inferido que os 9 nós são os botões "Enviar este" (13 produtos, menos 3 de prisão e 1 esgotado no cenário de teste). Linha de base não atualizada por causa desta regressão.

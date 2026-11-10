@@ -1,0 +1,114 @@
+{
+  "label": "agente-implementacao",
+  "at": "2026-11-07T11:44:31-03:00",
+  "commit": "3b8182b",
+  "spec_versions": {
+    "001-pedido-comprador": 4,
+    "002-consulta-pedido": 2
+  },
+  "criteria": {
+    "001/FR-001": {
+      "test": "cardapio_mostra_produtos_e_filtra",
+      "passed": true
+    },
+    "001/FR-002": {
+      "test": "esgotado_nao_pode_ser_escolhido",
+      "passed": true
+    },
+    "001/FR-003": {
+      "test": "cardapio_atualiza_sem_perder_o_foco",
+      "passed": true
+    },
+    "001/FR-004": {
+      "test": "escolher_produto_abre_formulario_sem_nova_aba_inesperada",
+      "passed": true
+    },
+    "001/FR-005": {
+      "test": "formulario_tem_os_campos_exigidos",
+      "passed": true
+    },
+    "001/FR-006": {
+      "test": "dado_invalido_nao_cria_pedido_e_explica",
+      "passed": true
+    },
+    "001/FR-007": {
+      "test": "varias_pessoas_num_pedido",
+      "passed": true
+    },
+    "001/FR-008": {
+      "test": "pix_mostra_codigo_valor_copiaecola_e_expiracao",
+      "passed": true
+    },
+    "001/FR-009": {
+      "test": "acionamentos_repetidos_criam_um_pedido",
+      "passed": true
+    },
+    "001/FR-010": {
+      "test": "confirmacao_do_pagamento_aparece_sem_recarregar",
+      "passed": true
+    },
+    "001/FR-011": {
+      "test": "prisao_vira_denuncia",
+      "passed": true
+    },
+    "001/FR-012": {
+      "test": "erro_foca_campo_invalido_e_e_anunciado",
+      "passed": true
+    },
+    "001/FR-013": {
+      "test": "confirmacao_e_dialogo_com_foco_e_anunciada",
+      "passed": true
+    },
+    "001/FR-014": {
+      "test": "botao_do_produto_identifica_o_produto",
+      "passed": true
+    },
+    "001/FR-015": {
+      "test": "opcao_anonima_tem_nome_que_descreve_a_funcao",
+      "passed": true
+    },
+    "001/FR-016": {
+      "test": "categoria_ativa_informada_sem_emojis_no_nome",
+      "passed": true
+    },
+    "001/FR-017": {
+      "test": "contraste_no_cardapio_inclusive_esgotados",
+      "passed": true
+    },
+    "002/FR-001": {
+      "test": "consulta_mostra_pedido",
+      "passed": true
+    },
+    "002/FR-002": {
+      "test": "codigo_inexistente",
+      "passed": true
+    },
+    "002/FR-003": {
+      "test": "campo_vazio",
+      "passed": true
+    },
+    "002/FR-004": {
+      "test": "consulta_automatica_pelo_endereco",
+      "passed": true
+    },
+    "002/FR-005": {
+      "test": "dados_do_comprador_exibidos_como_texto",
+      "passed": true
+    },
+    "002/FR-006": {
+      "test": "campo_de_codigo_rotulado",
+      "passed": true
+    },
+    "002/FR-007": {
+      "test": "resultado_da_consulta_anunciado",
+      "passed": true
+    }
+  },
+  "axe_violations": [
+    {
+      "id": "label-content-name-mismatch",
+      "impact": "serious",
+      "nodes": 9
+    }
+  ]
+}

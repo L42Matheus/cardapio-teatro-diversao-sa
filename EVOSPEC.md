@@ -46,3 +46,11 @@ As propostas passam nas regras de rastreabilidade e admissibilidade (R1–R3). A
 
 Ferramenta: [EvoSpec-UX](https://github.com/L42Matheus/evospec-ux) —
 `EVOSPEC_ROOT=<este repositório> python evospec.py validate`.
+
+## Rodada 1 (2026-11-07): aprovação, implementação por agente e verificação
+
+- CR-001 a CR-004 aprovadas; specs `001@4` e `002@2`. EVD-02 refutada na verificação (falso positivo da inspeção).
+- Linha de base no código original: 14 requisitos antigos passam; 10 dos 11 novos ou modificados falham.
+- Agente sem contexto (sem testes nem evidências) executou `/speckit-plan`, `/speckit-tasks` e `/speckit-implement` nas duas features; só alterou o front-end.
+- Verificação independente: 24/24 requisitos passam, nenhuma regressão funcional (pedido e Pix simulado preservados), governança R1–R7 sem erros.
+- **Regressão detectada**: nova violação automática `label-content-name-mismatch` (WCAG 2.5.3), registrada como EVD-09. A linha de base não foi atualizada; a mudança **não está pronta para a `main`**.
